@@ -1090,7 +1090,7 @@ void sftpProtocol::get(const KURL& url) {
         isFirstPacket = false;
       }
       data(filedata);
-      filedata = "";
+      filedata = QByteArray();
 
       // increment total bytes read
       totalbytesread += bytesread;
@@ -1475,7 +1475,7 @@ void sftpProtocol::listDir(const KURL& url) {
     entry.append(atom);
 
     if (dirent->type == SSH_FILEXFER_TYPE_SYMLINK) {
-      QByteArray file = (QString(path) + "/" + QFile::decodeName(dirent->name)).utf8().data();
+      QCString file = (QString(path) + "/" + QFile::decodeName(dirent->name)).utf8().data();
 
       atom.m_uds = UDS_FILE_TYPE;
       atom.m_long = S_IFREG;
