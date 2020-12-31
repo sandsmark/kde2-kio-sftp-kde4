@@ -546,26 +546,22 @@ void sftpProtocol::openConnection() {
   // Set timeout
   rc = ssh_options_set(mSession, SSH_OPTIONS_TIMEOUT, &timeout_sec);
   if (rc < 0) {
-    error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set a timeout."));
-    //return;
+    kdDebug(KIO_SFTP_DB) << "Could not set a timeout.";
   }
   rc = ssh_options_set(mSession, SSH_OPTIONS_TIMEOUT_USEC, &timeout_usec);
   if (rc < 0) {
-    error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set a timeout."));
-    //return;
+    kdDebug(KIO_SFTP_DB) << "Could not set a timeout in usec.";
   }
 
   // Don't use any compression
   rc = ssh_options_set(mSession, SSH_OPTIONS_COMPRESSION_C_S, "none");
   if (rc < 0) {
-    error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set compression."));
-    //return;
+    kdDebug(KIO_SFTP_DB) << "Could not set compression client <- server.";
   }
 
   rc = ssh_options_set(mSession, SSH_OPTIONS_COMPRESSION_S_C, "none");
   if (rc < 0) {
-    error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set compression."));
-    //return;
+    kdDebug(KIO_SFTP_DB) << "Could not set compression server -> client.";
   }
 
   // Set host and port
