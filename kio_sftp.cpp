@@ -235,7 +235,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
   return err;
 }
 
-void sftpProtocol::reportError(const KUrl &url, const int err) {
+void sftpProtocol::reportError(const KURL &url, const int err) {
   kDebug(KIO_SFTP_DB) << "url = " << url << " - err=" << err;
 
   switch (err) {
@@ -810,7 +810,7 @@ void sftpProtocol::special(const QByteArray &data) {
     setTimeoutSpecialCommand(KIO_SFTP_SPECIAL_TIMEOUT);
 }
 
-void sftpProtocol::open(const KUrl &url, QIODevice::OpenMode mode) {
+void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
   kDebug(KIO_SFTP_DB) << "open: " << url;
 
   openConnection();
@@ -964,7 +964,7 @@ void sftpProtocol::close() {
   finished();
 }
 
-void sftpProtocol::get(const KUrl& url) {
+void sftpProtocol::get(const KURL& url) {
   kDebug(KIO_SFTP_DB) << "get(): " << url;
 
   openConnection();
@@ -1077,7 +1077,7 @@ void sftpProtocol::get(const KUrl& url) {
   finished();
 }
 
-void sftpProtocol::put(const KUrl& url, int permissions, KIO::JobFlags flags) {
+void sftpProtocol::put(const KURL& url, int permissions, KIO::JobFlags flags) {
   kDebug(KIO_SFTP_DB) << "put(): " << url
                       << " , permissions = " << QString::number(permissions)
                       << ", overwrite = " << (flags & KIO::Overwrite)
@@ -1304,7 +1304,7 @@ void sftpProtocol::put(const KUrl& url, int permissions, KIO::JobFlags flags) {
   finished();
 }
 
-void sftpProtocol::copy(const KUrl &src, const KUrl &dest, int permissions, KIO::JobFlags flags)
+void sftpProtocol::copy(const KURL &src, const KURL &dest, int permissions, KIO::JobFlags flags)
 {
   kDebug(KIO_SFTP_DB) << src << " -> " << dest << " , permissions = " << QString::number(permissions)
                                       << ", overwrite = " << (flags & KIO::Overwrite)
@@ -1313,7 +1313,7 @@ void sftpProtocol::copy(const KUrl &src, const KUrl &dest, int permissions, KIO:
   error(KIO::ERR_UNSUPPORTED_ACTION, QString());
 }
 
-void sftpProtocol::stat(const KUrl& url) {
+void sftpProtocol::stat(const KURL& url) {
   kDebug(KIO_SFTP_DB) << url;
 
   openConnection();
@@ -1335,7 +1335,7 @@ void sftpProtocol::stat(const KUrl& url) {
       error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
       return;
     }
-    KUrl redir(url);
+    KURL redir(url);
     redir.setPath(cPath);
     redirection(redir);
 
@@ -1362,7 +1362,7 @@ void sftpProtocol::stat(const KUrl& url) {
   finished();
 }
 
-void sftpProtocol::mimetype(const KUrl& url){
+void sftpProtocol::mimetype(const KURL& url){
   kDebug(KIO_SFTP_DB) << url;
 
   openConnection();
@@ -1377,7 +1377,7 @@ void sftpProtocol::mimetype(const KUrl& url){
   finished();
 }
 
-void sftpProtocol::listDir(const KUrl& url) {
+void sftpProtocol::listDir(const KURL& url) {
   kDebug(KIO_SFTP_DB) << "list directory: " << url;
 
   openConnection();
@@ -1399,7 +1399,7 @@ void sftpProtocol::listDir(const KUrl& url) {
       error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
       return;
     }
-    KUrl redir(url);
+    KURL redir(url);
     redir.setPath(cPath);
     redirection(redir);
 
@@ -1517,7 +1517,7 @@ notype:
   finished();
 }
 
-void sftpProtocol::mkdir(const KUrl &url, int permissions) {
+void sftpProtocol::mkdir(const KURL &url, int permissions) {
   kDebug(KIO_SFTP_DB) << "create directory: " << url;
 
   openConnection();
@@ -1567,7 +1567,7 @@ void sftpProtocol::mkdir(const KUrl &url, int permissions) {
   return;
 }
 
-void sftpProtocol::rename(const KUrl& src, const KUrl& dest, KIO::JobFlags flags) {
+void sftpProtocol::rename(const KURL& src, const KURL& dest, KIO::JobFlags flags) {
   kDebug(KIO_SFTP_DB) << "rename " << src << " to " << dest;
 
   openConnection();
@@ -1602,7 +1602,7 @@ void sftpProtocol::rename(const KUrl& src, const KUrl& dest, KIO::JobFlags flags
   finished();
 }
 
-void sftpProtocol::symlink(const QString &target, const KUrl &dest, KIO::JobFlags flags) {
+void sftpProtocol::symlink(const QString &target, const KURL &dest, KIO::JobFlags flags) {
   kDebug(KIO_SFTP_DB) << "link " << target << "->" << dest
                       << ", overwrite = " << (flags & KIO::Overwrite)
                       << ", resume = " << (flags & KIO::Resume);
@@ -1642,7 +1642,7 @@ void sftpProtocol::symlink(const QString &target, const KUrl &dest, KIO::JobFlag
   finished();
 }
 
-void sftpProtocol::chmod(const KUrl& url, int permissions) {
+void sftpProtocol::chmod(const KURL& url, int permissions) {
   kDebug(KIO_SFTP_DB) << "change permission of " << url << " to " << QString::number(permissions);
 
   openConnection();
@@ -1660,7 +1660,7 @@ void sftpProtocol::chmod(const KUrl& url, int permissions) {
   finished();
 }
 
-void sftpProtocol::del(const KUrl &url, bool isfile){
+void sftpProtocol::del(const KURL &url, bool isfile){
   kDebug(KIO_SFTP_DB) << "deleting " << (isfile ? "file: " : "directory: ") << url;
 
   openConnection();
