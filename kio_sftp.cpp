@@ -244,25 +244,25 @@ void sftpProtocol::reportError(const KURL &url, const int err) {
       break;
     case SSH_FX_NO_SUCH_FILE:
     case SSH_FX_NO_SUCH_PATH:
-      error(KIO::ERR_DOES_NOT_EXIST, url.prettyUrl());
+      error(KIO::ERR_DOES_NOT_EXIST, url.prettyURL());
       break;
     case SSH_FX_PERMISSION_DENIED:
-      error(KIO::ERR_ACCESS_DENIED, url.prettyUrl());
+      error(KIO::ERR_ACCESS_DENIED, url.prettyURL());
       break;
     case SSH_FX_FILE_ALREADY_EXISTS:
-      error(KIO::ERR_FILE_ALREADY_EXIST, url.prettyUrl());
+      error(KIO::ERR_FILE_ALREADY_EXIST, url.prettyURL());
       break;
     case SSH_FX_INVALID_HANDLE:
-      error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
+      error(KIO::ERR_MALFORMED_URL, url.prettyURL());
       break;
     case SSH_FX_OP_UNSUPPORTED:
-      error(KIO::ERR_UNSUPPORTED_ACTION, url.prettyUrl());
+      error(KIO::ERR_UNSUPPORTED_ACTION, url.prettyURL());
       break;
     case SSH_FX_BAD_MESSAGE:
-      error(KIO::ERR_UNKNOWN, url.prettyUrl());
+      error(KIO::ERR_UNKNOWN, url.prettyURL());
       break;
     default:
-      error(KIO::ERR_INTERNAL, url.prettyUrl());
+      error(KIO::ERR_INTERNAL, url.prettyURL());
       break;
   }
 }
@@ -473,7 +473,7 @@ void sftpProtocol::openConnection() {
   // Check for cached authentication info if no password is specified...
   if (mPassword.isEmpty()) {
     kdDebug(KIO_SFTP_DB) << "checking cache: info.username = " << info.username
-      << ", info.url = " << info.url.prettyUrl();
+      << ", info.url = " << info.url.prettyURL();
 
     if (checkCachedAuthentication(info)) {
       mUsername = info.username;
@@ -753,7 +753,7 @@ void sftpProtocol::openConnection() {
   info.password = mPassword;
 
   kdDebug(KIO_SFTP_DB) << "Caching info.username = " << info.username
-    << ", info.url = " << info.url.prettyUrl();
+    << ", info.url = " << info.url.prettyURL();
 
   cacheAuthentication(info);
 
@@ -816,7 +816,7 @@ void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
 
   openConnection();
   if (!mConnected) {
-    error(KIO::ERR_CONNECTION_BROKEN, url.prettyUrl());
+    error(KIO::ERR_CONNECTION_BROKEN, url.prettyURL());
     return;
   }
 
@@ -831,12 +831,12 @@ void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
 
   switch (sb->type) {
     case SSH_FILEXFER_TYPE_DIRECTORY:
-      error(KIO::ERR_IS_DIRECTORY, url.prettyUrl());
+      error(KIO::ERR_IS_DIRECTORY, url.prettyURL());
       sftp_attributes_free(sb);
       return;
     case SSH_FILEXFER_TYPE_SPECIAL:
     case SSH_FILEXFER_TYPE_UNKNOWN:
-      error(KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl());
+      error(KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyURL());
       sftp_attributes_free(sb);
       return;
     case SSH_FILEXFER_TYPE_SYMLINK:
@@ -887,7 +887,7 @@ void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
 
     bytesRead = sftp_read(mOpenFile, buffer.data(), bytesRequested);
     if (bytesRead < 0) {
-      error(KIO::ERR_COULD_NOT_READ, mOpenUrl.prettyUrl());
+      error(KIO::ERR_COULD_NOT_READ, mOpenUrl.prettyURL());
       close();
       return;
     } else {
@@ -920,7 +920,7 @@ void sftpProtocol::read(KIO::filesize_t bytes) {
 
   if (bytesRead < 0) {
     kdDebug(KIO_SFTP_DB) << "Could not read " << mOpenUrl;
-    error(KIO::ERR_COULD_NOT_READ, mOpenUrl.prettyUrl());
+    error(KIO::ERR_COULD_NOT_READ, mOpenUrl.prettyURL());
     close();
     return;
   }
@@ -937,7 +937,7 @@ void sftpProtocol::write(const QByteArray &data) {
   ssize_t bytesWritten = sftp_write(mOpenFile, data.data(), data.size());
   if (bytesWritten < 0) {
     kdDebug(KIO_SFTP_DB) << "Could not write to " << mOpenUrl;
-    error(KIO::ERR_COULD_NOT_WRITE, mOpenUrl.prettyUrl());
+    error(KIO::ERR_COULD_NOT_WRITE, mOpenUrl.prettyURL());
     close();
     return;
   }
@@ -992,12 +992,12 @@ void sftpProtocol::get(const KURL& url) {
 
   switch (sb->type) {
     case SSH_FILEXFER_TYPE_DIRECTORY:
-      error(KIO::ERR_IS_DIRECTORY, url.prettyUrl());
+      error(KIO::ERR_IS_DIRECTORY, url.prettyURL());
       sftp_attributes_free(sb);
       return;
     case SSH_FILEXFER_TYPE_SPECIAL:
     case SSH_FILEXFER_TYPE_UNKNOWN:
-    error(KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl());
+    error(KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyURL());
       sftp_attributes_free(sb);
       return;
     case SSH_FILEXFER_TYPE_SYMLINK:
@@ -1008,7 +1008,7 @@ void sftpProtocol::get(const KURL& url) {
   // Open file
   file = sftp_open(mSftp, path.data(), O_RDONLY, 0);
   if (file == NULL) {
-    error( KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl());
+    error( KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyURL());
     sftp_attributes_free(sb);
     return;
   }
@@ -1049,7 +1049,7 @@ void sftpProtocol::get(const KURL& url) {
         // All done reading
         break;
       } else if (bytesread < 0) {
-        error(KIO::ERR_COULD_NOT_READ, url.prettyUrl());
+        error(KIO::ERR_COULD_NOT_READ, url.prettyURL());
         sftp_attributes_free(sb);
         return;
       }
@@ -1332,7 +1332,7 @@ void sftpProtocol::stat(const KURL& url) {
     }
 
     if (cPath.isEmpty()) {
-      error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
+      error(KIO::ERR_MALFORMED_URL, url.prettyURL());
       return;
     }
     KURL redir(url);
@@ -1353,7 +1353,7 @@ void sftpProtocol::stat(const KURL& url) {
   UDSEntry entry;
   entry.clear();
   if (!createUDSEntry(url.fileName(), path, entry, details)) {
-    error(KIO::ERR_DOES_NOT_EXIST, url.prettyUrl());
+    error(KIO::ERR_DOES_NOT_EXIST, url.prettyURL());
     return;
   }
 
@@ -1396,7 +1396,7 @@ void sftpProtocol::listDir(const KURL& url) {
     }
 
     if (cPath.isEmpty()) {
-      error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
+      error(KIO::ERR_MALFORMED_URL, url.prettyURL());
       return;
     }
     KURL redir(url);
@@ -1526,7 +1526,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
   }
 
   if (url.path().isEmpty()) {
-    error(KIO::ERR_MALFORMED_URL, url.prettyUrl());
+    error(KIO::ERR_MALFORMED_URL, url.prettyURL());
     return;
   }
   const QString path = url.path();
