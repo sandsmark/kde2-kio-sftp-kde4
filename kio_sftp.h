@@ -45,31 +45,23 @@ class sftpProtocol : public KIO::SlaveBase
 {
 
 public:
-  sftpProtocol(const QByteArray &pool_socket, const QByteArray &app_socket);
+  sftpProtocol(const QCString &pool_socket, const QCString &app_socket);
   virtual ~sftpProtocol();
-  virtual void setHost(const QString &h, uint16_t port, const QString& user, const QString& pass);
-  virtual void get(const KURL &url);
-  virtual void listDir(const KURL &url) ;
-  virtual void mimetype(const KURL &url);
-  virtual void stat(const KURL &url);
-  virtual void copy(const KURL &src, const KURL &dest, int permissions, KIO::JobFlags flags);
-  virtual void put(const KURL &url, int permissions, KIO::JobFlags flags);
+  virtual void setHost(const QString& h, int port, const QString& user, const QString& pass);
+  virtual void get(const KURL& url);
+  virtual void listDir(const KURL& url) ;
+  virtual void mimetype(const KURL& url);
+  virtual void stat(const KURL& url);
+  virtual void put(const KURL& url, int permissions, bool overwrite, bool resume);
+  virtual void copy(const KURL &src, const KURL &dest, int permissions, bool overwrite);
   virtual void closeConnection();
   virtual void slave_status();
   virtual void del(const KURL &url, bool isfile);
-  virtual void chmod(const KURL &url, int permissions);
-  virtual void symlink(const QString &target, const KURL &dest, KIO::JobFlags flags);
-  virtual void rename(const KURL &src, const KURL &dest, KIO::JobFlags flags);
-  virtual void mkdir(const KURL &url, int permissions);
+  virtual void chmod(const KURL& url, int permissions);
+  virtual void symlink(const QString& target, const KURL& dest, bool overwrite);
+  virtual void rename(const KURL& src, const KURL& dest, bool overwrite);
+  virtual void mkdir(const KURL& url, int permissions);
   virtual void openConnection();
-
-  // KIO::FileJob interface
-  virtual void open(const KURL &url, QIODevice::OpenMode mode);
-  virtual void read(KIO::filesize_t size);
-  virtual void write(const QByteArray &data);
-  virtual void seek(KIO::filesize_t offset);
-  virtual void close();
-  virtual void special(const QByteArray &data);
 
   // libssh authentication callback (note that this is called by the
   // global ::auth_callback() call.

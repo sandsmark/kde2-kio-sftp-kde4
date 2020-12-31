@@ -376,7 +376,7 @@ QString sftpProtocol::canonicalizePath(const QString &path) {
   return cPath;
 }
 
-sftpProtocol::sftpProtocol(const QByteArray &pool_socket, const QByteArray &app_socket)
+sftpProtocol::sftpProtocol(const QCString &pool_socket, const QCString &app_socket)
              : SlaveBase("kio_sftp", pool_socket, app_socket),
                   mConnected(false), mPort(-1), mSession(NULL), mSftp(NULL) {
 #ifndef Q_WS_WIN
@@ -413,7 +413,7 @@ sftpProtocol::~sftpProtocol() {
   ssh_finalize();
 }
 
-void sftpProtocol::setHost(const QString& h, uint16_t port, const QString& user, const QString& pass) {
+void sftpProtocol::setHost(const QString& h, int port, const QString& user, const QString& pass) {
   kdDebug(KIO_SFTP_DB) << "setHost(): " << user << "@" << h << ":" << port;
 
   if (mConnected) {
@@ -1077,11 +1077,11 @@ void sftpProtocol::get(const KURL& url) {
   finished();
 }
 
-void sftpProtocol::put(const KURL& url, int permissions, KIO::JobFlags flags) {
+void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool resume) {
   kdDebug(KIO_SFTP_DB) << "put(): " << url
                       << " , permissions = " << QString::number(permissions)
-                      << ", overwrite = " << (flags & KIO::Overwrite)
-                      << ", resume = " << (flags & KIO::Resume);
+                      << ", overwrite = " << overwrite
+                      << ", resume = " << resume;
 
   openConnection();
   if (!mConnected) {
@@ -1304,11 +1304,10 @@ void sftpProtocol::put(const KURL& url, int permissions, KIO::JobFlags flags) {
   finished();
 }
 
-void sftpProtocol::copy(const KURL &src, const KURL &dest, int permissions, KIO::JobFlags flags)
+void sftpProtocol::copy(const KURL &src, const KURL &dest, int permissions, bool overwrite)
 {
   kdDebug(KIO_SFTP_DB) << src << " -> " << dest << " , permissions = " << QString::number(permissions)
-                                      << ", overwrite = " << (flags & KIO::Overwrite)
-                                      << ", resume = " << (flags & KIO::Resume);
+                                      << ", overwrite = " << overwrite;
 
   error(KIO::ERR_UNSUPPORTED_ACTION, QString());
 }
