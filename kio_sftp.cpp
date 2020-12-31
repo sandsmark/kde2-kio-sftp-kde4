@@ -532,7 +532,7 @@ void sftpProtocol::openConnection() {
   unsigned char *hash = NULL; // the server hash
   char *hexa;
   char *verbosity;
-  int rc, state, hlen;
+  int rc, state;
   int timeout_sec = 30, timeout_usec = 0;
 
   mSession = ssh_new();
@@ -623,8 +623,15 @@ void sftpProtocol::openConnection() {
   kdDebug(KIO_SFTP_DB) << "Getting the SSH server hash";
 
   /* get the hash */
-  hlen = ssh_get_pubkey_hash(mSession, &hash);
-  if (hlen < 0) {
+  ssh_key serverKey;
+  if (ssh_get_server_publickey(mSession, &serverKey) < 0) {
+    error(KIO::ERR_COULD_NOT_CONNECT, QString::fromUtf8(ssh_get_error(mSession)));
+    closeConnection();
+    return;
+  }
+
+  size_t hlen;
+  if (ssh_get_publickey_hash(serverKey, SSH_PUBLICKEY_HASH_SHA256, &hash, &hlen) < 0) {
     error(KIO::ERR_COULD_NOT_CONNECT, QString::fromUtf8(ssh_get_error(mSession)));
     closeConnection();
     return;
@@ -633,11 +640,11 @@ void sftpProtocol::openConnection() {
   kdDebug(KIO_SFTP_DB) << "Checking if the SSH server is known";
 
   /* check the server public key hash */
-  state = ssh_is_server_known(mSession);
+  state = ssh_session_is_known_server(mSession);
   switch (state) {
-    case SSH_SERVER_KNOWN_OK:
+    case SSH_KNOWN_HOSTS_OK:
       break;
-    case SSH_SERVER_FOUND_OTHER:
+    case SSH_KNOWN_HOSTS_OTHER:
       delete hash;
       error(KIO::ERR_CONNECTION_BROKEN, i18n("The host key for this server was "
             "not found, but another type of key exists.\n"
@@ -659,8 +666,8 @@ void sftpProtocol::openConnection() {
       delete hexa;
       closeConnection();
       return;
-    case SSH_SERVER_FILE_NOT_FOUND:
-    case SSH_SERVER_NOT_KNOWN:
+    case SSH_KNOWN_HOSTS_NOT_FOUND:
+    case SSH_KNOWN_HOSTS_UNKNOWN:
       hexa = ssh_get_hexa(hash, hlen);
       delete hash;
       caption = i18n("Warning: Cannot verify host's identity.");
@@ -677,13 +684,13 @@ void sftpProtocol::openConnection() {
 
       /* write the known_hosts file */
       kdDebug(KIO_SFTP_DB) << "Adding server to known_hosts file.";
-      if (ssh_write_knownhost(mSession) < 0) {
+      if (ssh_session_update_known_hosts(mSession) != SSH_OK) {
         error(KIO::ERR_USER_CANCELED, QString::fromUtf8(ssh_get_error(mSession)));
         closeConnection();
         return;
       }
       break;
-    case SSH_SERVER_ERROR:
+    case SSH_KNOWN_HOSTS_ERROR:
       delete hash;
       error(KIO::ERR_COULD_NOT_CONNECT, QString::fromUtf8(ssh_get_error(mSession)));
       return;
