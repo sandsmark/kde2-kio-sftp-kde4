@@ -24,6 +24,7 @@
 #include <fcntl.h>
 
 #include <qapplication.h>
+#include <qfile.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -273,23 +274,30 @@ bool sftpProtocol::createUDSEntry(const QString &filename, const QByteArray &pat
   mode_t access;
   char *link;
 
-  Q_ASSERT(entry.count() == 0);
+  ASSERT(entry.count() == 0);
 
   sftp_attributes sb = sftp_lstat(mSftp, path.data());
   if (sb == NULL) {
     return false;
   }
 
-  entry.insert(KIO::UDSEntry::UDS_NAME, filename);
+  UDSAtom atom;
+  atom.m_uds = UDS_NAME;
+  atom.m_str = filename;
+  entry.append(atom);
 
   if (sb->type == SSH_FILEXFER_TYPE_SYMLINK) {
-    entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG);
+    atom.m_uds = UDS_FILE_TYPE;
+    atom.m_long = S_IFREG;
+    entry.append(atom);
     link = sftp_readlink(mSftp, path.data());
     if (link == NULL) {
       sftp_attributes_free(sb);
       return false;
     }
-    entry.insert(KIO::UDSEntry::UDS_LINK_DEST, QFile::decodeName(link));
+    atom.m_uds = UDS_LINK_DEST;
+    atom.m_str = QFile::decodeName(link);
+    entry.append(atom);
     delete link;
     // A symlink -> follow it only if details > 1
     if (details > 1) {
@@ -298,9 +306,17 @@ bool sftpProtocol::createUDSEntry(const QString &filename, const QByteArray &pat
         // It is a link pointing to nowhere
         type = S_IFMT - 1;
         access = S_IRWXU | S_IRWXG | S_IRWXO;
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, type);
-        entry.insert( KIO::UDSEntry::UDS_ACCESS, access);
-        entry.insert( KIO::UDSEntry::UDS_SIZE, 0LL );
+        atom.m_uds = UDS_FILE_TYPE;
+        atom.m_long = type;
+        entry.append(atom);
+
+        atom.m_uds = UDS_ACCESS;
+        atom.m_long = access;
+        entry.append(atom);
+
+        atom.m_uds = UDS_SIZE;
+        atom.m_long = 0LL;
+        entry.append(atom);
 
         goto notype;
       }
@@ -311,42 +327,69 @@ bool sftpProtocol::createUDSEntry(const QString &filename, const QByteArray &pat
 
   switch (sb->type) {
     case SSH_FILEXFER_TYPE_REGULAR:
-      entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG);
+      atom.m_uds = UDS_FILE_TYPE;
+      atom.m_long = S_IFREG;
+      entry.append(atom);
       break;
     case SSH_FILEXFER_TYPE_DIRECTORY:
-      entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR);
+      atom.m_uds = UDS_FILE_TYPE;
+      atom.m_long = S_IFDIR;
+      entry.append(atom);
       break;
     case SSH_FILEXFER_TYPE_SYMLINK:
-      entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFLNK);
+      atom.m_uds = UDS_FILE_TYPE;
+      atom.m_long = S_IFLNK;
+      entry.append(atom);
       break;
     case SSH_FILEXFER_TYPE_SPECIAL:
     case SSH_FILEXFER_TYPE_UNKNOWN:
-      entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFMT - 1);
+      atom.m_uds = UDS_FILE_TYPE;
+      atom.m_long = S_IFMT - 1;
+      entry.append(atom);
       break;
   }
 
   access = sb->permissions & 07777;
-  entry.insert(KIO::UDSEntry::UDS_ACCESS, access);
+  atom.m_uds = UDS_ACCESS;
+  atom.m_long = access;
+  entry.append(atom);
 
-  entry.insert(KIO::UDSEntry::UDS_SIZE, sb->size);
+  atom.m_uds = UDS_SIZE;
+  atom.m_long = sb->size;
+  entry.append(atom);
 
 notype:
   if (details > 0) {
     if (sb->owner) {
-      entry.insert(KIO::UDSEntry::UDS_USER, QString::fromUtf8(sb->owner));
+      atom.m_uds = UDS_USER;
+      atom.m_str = QString::fromUtf8(sb->owner);
+      entry.append(atom);
     } else {
-      entry.insert(KIO::UDSEntry::UDS_USER, QString::number(sb->uid));
+      atom.m_uds = UDS_USER;
+      atom.m_str = QString::number(sb->uid);
+      entry.append(atom);
     }
 
     if (sb->group) {
-      entry.insert(KIO::UDSEntry::UDS_GROUP, QString::fromUtf8(sb->group));
+      atom.m_uds = UDS_GROUP;
+      atom.m_str = QString::fromUtf8(sb->group);
+      entry.append(atom);
     } else {
-      entry.insert(KIO::UDSEntry::UDS_GROUP, QString::number(sb->gid));
+      atom.m_uds = UDS_GROUP;
+      atom.m_str = QString::number(sb->gid);
+      entry.append(atom);
     }
+    atom.m_uds = UDS_ACCESS_TIME;
+    atom.m_long = sb->atime;
+    entry.append(atom);
 
-    entry.insert(KIO::UDSEntry::UDS_ACCESS_TIME, sb->atime);
-    entry.insert(KIO::UDSEntry::UDS_MODIFICATION_TIME, sb->mtime);
-    entry.insert(KIO::UDSEntry::UDS_CREATION_TIME, sb->createtime);
+    atom.m_uds = UDS_MODIFICATION_TIME;
+    atom.m_long = sb->mtime;
+    entry.append(atom);
+
+    atom.m_uds = UDS_MODIFICATION_TIME;
+    atom.m_long = sb->createtime;
+    entry.append(atom);
   }
 
   sftp_attributes_free(sb);
@@ -448,7 +491,7 @@ void sftpProtocol::openConnection() {
 
   kdDebug(KIO_SFTP_DB) << "username=" << mUsername << ", host=" << mHost << ", port=" << mPort;
 
-  infoMessage(i18n("Opening SFTP connection to host %1:%2", mHost, mPort));
+  infoMessage(i18n("Opening SFTP connection to host %1:%2").arg(mHost).arg(mPort));
 
   if (mHost.isEmpty()) {
     kdDebug(KIO_SFTP_DB) << "openConnection(): Need hostname...";
@@ -598,7 +641,7 @@ void sftpProtocol::openConnection() {
             "not found, but another type of key exists.\n"
             "An attacker might change the default server key to confuse your "
             "client into thinking the key does not exist.\n"
-            "Please contact your system administrator.\n%1", QString::fromUtf8(ssh_get_error(mSession))));
+            "Please contact your system administrator.\n%1").arg(QString::fromUtf8(ssh_get_error(mSession))));
       closeConnection();
       return;
     case SSH_SERVER_KNOWN_CHANGED:
@@ -609,8 +652,8 @@ void sftpProtocol::openConnection() {
           "This could either mean that DNS SPOOFING is happening or the IP "
           "address for the host and its host key have changed at the same time.\n"
           "The fingerprint for the key sent by the remote host is:\n %2\n"
-          "Please contact your system administrator.\n%3",
-          mHost, QString::fromUtf8(hexa), QString::fromUtf8(ssh_get_error(mSession))));
+          "Please contact your system administrator.\n%3").arg(
+          mHost).arg(QString::fromUtf8(hexa)).arg(QString::fromUtf8(ssh_get_error(mSession))));
       delete hexa;
       closeConnection();
       return;
@@ -621,7 +664,7 @@ void sftpProtocol::openConnection() {
       caption = i18n("Warning: Cannot verify host's identity.");
       msg = i18n("The authenticity of host %1 cannot be established.\n"
         "The key fingerprint is: %2\n"
-        "Are you sure you want to continue connecting?", mHost, hexa);
+        "Are you sure you want to continue connecting?").arg(mHost).arg(hexa);
       delete hexa;
 
       if (KMessageBox::Yes != messageBox(WarningYesNo, msg, caption)) {
@@ -744,7 +787,7 @@ void sftpProtocol::openConnection() {
   }
 
   // Login succeeded!
-  infoMessage(i18n("Successfully connected to %1", mHost));
+  infoMessage(i18n("Successfully connected to %1").arg(mHost));
   info.url.setProtocol("sftp");
   info.url.setHost(mHost);
   info.url.setPort(mPort);
@@ -812,7 +855,7 @@ void sftpProtocol::special(const QByteArray &data) {
 }
 
 void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
-  kdDebug(KIO_SFTP_DB) << "open: " << url;
+  kdDebug(KIO_SFTP_DB) << "open: " << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -911,12 +954,12 @@ void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
 void sftpProtocol::read(KIO::filesize_t bytes) {
   kdDebug(KIO_SFTP_DB) << "read, offset = " << openOffset << ", bytes = " << bytes;
 
-  Q_ASSERT(mOpenFile != NULL);
+  ASSERT(mOpenFile != NULL);
 
   QVarLengthArray<char> buffer(bytes);
 
   ssize_t bytesRead = sftp_read(mOpenFile, buffer.data(), bytes);
-  Q_ASSERT(bytesRead <= static_cast<ssize_t>(bytes));
+  ASSERT(bytesRead <= static_cast<ssize_t>(bytes));
 
   if (bytesRead < 0) {
     kdDebug(KIO_SFTP_DB) << "Could not read " << mOpenUrl;
@@ -932,7 +975,7 @@ void sftpProtocol::read(KIO::filesize_t bytes) {
 void sftpProtocol::write(const QByteArray &data) {
   kdDebug(KIO_SFTP_DB) << "write, offset = " << openOffset << ", bytes = " << data.size();
 
-  Q_ASSERT(mOpenFile != NULL);
+  ASSERT(mOpenFile != NULL);
 
   ssize_t bytesWritten = sftp_write(mOpenFile, data.data(), data.size());
   if (bytesWritten < 0) {
@@ -948,7 +991,7 @@ void sftpProtocol::write(const QByteArray &data) {
 void sftpProtocol::seek(KIO::filesize_t offset) {
   kdDebug(KIO_SFTP_DB) << "seek, offset = " << offset;
 
-  Q_ASSERT(mOpenFile != NULL);
+  ASSERT(mOpenFile != NULL);
 
   if (sftp_seek64(mOpenFile, static_cast<uint64_t>(offset)) < 0) {
     error(KIO::ERR_COULD_NOT_SEEK, mOpenUrl.path());
@@ -966,7 +1009,7 @@ void sftpProtocol::close() {
 }
 
 void sftpProtocol::get(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << "get(): " << url;
+  kdDebug(KIO_SFTP_DB) << "get(): " << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -1079,7 +1122,7 @@ void sftpProtocol::get(const KURL& url) {
 }
 
 void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool resume) {
-  kdDebug(KIO_SFTP_DB) << "put(): " << url
+  kdDebug(KIO_SFTP_DB) << "put(): " << url.url()
                       << " , permissions = " << QString::number(permissions)
                       << ", overwrite = " << overwrite
                       << ", resume = " << resume;
@@ -1314,7 +1357,7 @@ void sftpProtocol::copy(const KURL &src, const KURL &dest, int permissions, bool
 }
 
 void sftpProtocol::stat(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << url;
+  kdDebug(KIO_SFTP_DB) << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -1363,7 +1406,7 @@ void sftpProtocol::stat(const KURL& url) {
 }
 
 void sftpProtocol::mimetype(const KURL& url){
-  kdDebug(KIO_SFTP_DB) << url;
+  kdDebug(KIO_SFTP_DB) << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -1378,7 +1421,7 @@ void sftpProtocol::mimetype(const KURL& url){
 }
 
 void sftpProtocol::listDir(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << "list directory: " << url;
+  kdDebug(KIO_SFTP_DB) << "list directory: " << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -1425,6 +1468,8 @@ void sftpProtocol::listDir(const KURL& url) {
 
   kdDebug(KIO_SFTP_DB) << "readdir: " << path << ", details: " << QString::number(details);
 
+  UDSAtom atom;
+
   for (;;) {
     mode_t access;
     mode_t type;
@@ -1436,12 +1481,16 @@ void sftpProtocol::listDir(const KURL& url) {
     }
 
     entry.clear();
-    entry.insert(KIO::UDSEntry::UDS_NAME, QFile::decodeName(dirent->name));
+    atom.m_uds = UDS_NAME;
+    atom.m_str = QFile::decodeName(dirent->name);
+    entry.append(atom);
 
     if (dirent->type == SSH_FILEXFER_TYPE_SYMLINK) {
       QByteArray file = QByteArray(path + '/' + QFile::decodeName(dirent->name).utf8()).data();
 
-      entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG);
+      atom.m_uds = UDS_FILE_TYPE;
+      atom.m_long = S_IFREG;
+      entry.append(atom);
 
       link = sftp_readlink(mSftp, file.data());
       if (link == NULL) {
@@ -1449,7 +1498,9 @@ void sftpProtocol::listDir(const KURL& url) {
         error(KIO::ERR_INTERNAL, i18n("Could not read link: %1").arg(QString::fromUtf8(file)));
         return;
       }
-      entry.insert(KIO::UDSEntry::UDS_LINK_DEST, QFile::decodeName(link));
+      atom.m_uds = UDS_LINK_DEST;
+      atom.m_str = QFile::decodeName(link);
+      entry.append(atom);
       delete link;
       // A symlink -> follow it only if details > 1
       if (details > 1) {
@@ -1458,9 +1509,15 @@ void sftpProtocol::listDir(const KURL& url) {
           // It is a link pointing to nowhere
           type = S_IFMT - 1;
           access = S_IRWXU | S_IRWXG | S_IRWXO;
-          entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, type);
-          entry.insert( KIO::UDSEntry::UDS_ACCESS, access);
-          entry.insert( KIO::UDSEntry::UDS_SIZE, 0LL );
+          atom.m_uds = UDS_FILE_TYPE;
+          atom.m_long = type;
+          entry.append(atom);
+          atom.m_uds = UDS_ACCESS;
+          atom.m_long = access;
+          entry.append(atom);
+          atom.m_uds = UDS_SIZE;
+          atom.m_long = 0;
+          entry.append(atom);
 
           goto notype;
         }
@@ -1471,13 +1528,19 @@ void sftpProtocol::listDir(const KURL& url) {
 
     switch (dirent->type) {
       case SSH_FILEXFER_TYPE_REGULAR:
-        entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG);
+        atom.m_uds = UDS_FILE_TYPE;
+        atom.m_long = S_IFREG;
+        entry.append(atom);
         break;
       case SSH_FILEXFER_TYPE_DIRECTORY:
-        entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR);
+        atom.m_uds = UDS_FILE_TYPE;
+        atom.m_long = S_IFDIR;
+        entry.append(atom);
         break;
       case SSH_FILEXFER_TYPE_SYMLINK:
-        entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFLNK);
+        atom.m_uds = UDS_FILE_TYPE;
+        atom.m_long = S_IFLNK;
+        entry.append(atom);
         break;
       case SSH_FILEXFER_TYPE_SPECIAL:
       case SSH_FILEXFER_TYPE_UNKNOWN:
@@ -1485,27 +1548,43 @@ void sftpProtocol::listDir(const KURL& url) {
     }
 
     access = dirent->permissions & 07777;
-    entry.insert(KIO::UDSEntry::UDS_ACCESS, access);
+    atom.m_uds = UDS_ACCESS;
+    atom.m_long = access;
+    entry.append(atom);
 
-    entry.insert(KIO::UDSEntry::UDS_SIZE, dirent->size);
+    atom.m_uds = UDS_SIZE;
+    atom.m_long = dirent->size;
+    entry.append(atom);
 
 notype:
     if (details > 0) {
+      atom.m_uds = UDS_USER;
       if (dirent->owner) {
-          entry.insert(KIO::UDSEntry::UDS_USER, QString::fromUtf8(dirent->owner));
+          atom.m_str = QString::fromUtf8(dirent->owner);
       } else {
-          entry.insert(KIO::UDSEntry::UDS_USER, QString::number(dirent->uid));
+          atom.m_str = QString::number(dirent->uid);
       }
+      entry.append(atom);
 
+      atom.m_uds = UDS_GROUP;
       if (dirent->group) {
-          entry.insert(KIO::UDSEntry::UDS_GROUP, QString::fromUtf8(dirent->group));
+          atom.m_str = QString::fromUtf8(dirent->group);
       } else {
-          entry.insert(KIO::UDSEntry::UDS_GROUP, QString::number(dirent->gid));
+          atom.m_str = QString::number(dirent->gid);
       }
+      entry.append(atom);
 
-      entry.insert(KIO::UDSEntry::UDS_ACCESS_TIME, dirent->atime);
-      entry.insert(KIO::UDSEntry::UDS_MODIFICATION_TIME, dirent->mtime);
-      entry.insert(KIO::UDSEntry::UDS_CREATION_TIME, dirent->createtime);
+      atom.m_uds = UDS_ACCESS_TIME;
+      atom.m_long = dirent->atime;
+      entry.append(atom);
+
+      atom.m_uds = UDS_MODIFICATION_TIME;
+      atom.m_long = dirent->mtime;
+      entry.append(atom);
+
+      atom.m_uds = UDS_MODIFICATION_TIME;
+      atom.m_long = dirent->createtime;
+      entry.append(atom);
     }
 
     sftp_attributes_free(dirent);
@@ -1518,7 +1597,7 @@ notype:
 }
 
 void sftpProtocol::mkdir(const KURL &url, int permissions) {
-  kdDebug(KIO_SFTP_DB) << "create directory: " << url;
+  kdDebug(KIO_SFTP_DB) << "create directory: " << url.url()
 
   openConnection();
   if (!mConnected) {
@@ -1534,7 +1613,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
 
   // Remove existing file or symlink, if requested.
   if (metaData(QLatin1String("overwrite")) == QLatin1String("true")) {
-    kdDebug(KIO_SFTP_DB) << "overwrite set, remove existing file or symlink: " << url;
+    kdDebug(KIO_SFTP_DB) << "overwrite set, remove existing file or symlink: " << url.url()
     sftp_unlink(mSftp, path_c.data());
   }
 
@@ -1546,7 +1625,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
       sftp_attributes_free(sb);
       return;
     } else {
-      kdDebug(KIO_SFTP_DB) << "Successfully created directory: " << url;
+      kdDebug(KIO_SFTP_DB) << "Successfully created directory: " << url.url()
       if (permissions != -1) {
         chmod(url, permissions);
       } else {
@@ -1567,7 +1646,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
   return;
 }
 
-void sftpProtocol::rename(const KURL& src, const KURL& dest, KIO::JobFlags flags) {
+void sftpProtocol::rename(const KURL& src, const KURL& dest, bool overwrite) {
   kdDebug(KIO_SFTP_DB) << "rename " << src << " to " << dest;
 
   openConnection();
@@ -1580,7 +1659,7 @@ void sftpProtocol::rename(const KURL& src, const KURL& dest, KIO::JobFlags flags
 
   sftp_attributes sb = sftp_lstat(mSftp, qdest.data());
   if (sb != NULL) {
-    if (!(flags & KIO::Overwrite)) {
+    if (!overwrite) {
       if (sb->type == SSH_FILEXFER_TYPE_DIRECTORY) {
         error(KIO::ERR_DIR_ALREADY_EXIST, dest.url());
       } else {
@@ -1602,10 +1681,9 @@ void sftpProtocol::rename(const KURL& src, const KURL& dest, KIO::JobFlags flags
   finished();
 }
 
-void sftpProtocol::symlink(const QString &target, const KURL &dest, KIO::JobFlags flags) {
+void sftpProtocol::symlink(const QString& target, const KURL& dest, bool overwrite) {
   kdDebug(KIO_SFTP_DB) << "link " << target << "->" << dest
-                      << ", overwrite = " << (flags & KIO::Overwrite)
-                      << ", resume = " << (flags & KIO::Resume);
+                      << ", overwrite = " << overwrite;
 
   openConnection();
   if (!mConnected) {
@@ -1617,7 +1695,7 @@ void sftpProtocol::symlink(const QString &target, const KURL &dest, KIO::JobFlag
 
   bool failed = false;
   if (sftp_symlink(mSftp, t.data(), d.data()) < 0) {
-    if (flags == KIO::Overwrite) {
+    if (overwrite) {
       sftp_attributes sb = sftp_lstat(mSftp, d.data());
       if (sb == NULL) {
         failed = true;
@@ -1643,7 +1721,7 @@ void sftpProtocol::symlink(const QString &target, const KURL &dest, KIO::JobFlag
 }
 
 void sftpProtocol::chmod(const KURL& url, int permissions) {
-  kdDebug(KIO_SFTP_DB) << "change permission of " << url << " to " << QString::number(permissions);
+  kdDebug(KIO_SFTP_DB) << "change permission of " << url.url() << " to " << QString::number(permissions);
 
   openConnection();
   if (!mConnected) {
@@ -1661,7 +1739,7 @@ void sftpProtocol::chmod(const KURL& url, int permissions) {
 }
 
 void sftpProtocol::del(const KURL &url, bool isfile){
-  kdDebug(KIO_SFTP_DB) << "deleting " << (isfile ? "file: " : "directory: ") << url;
+  kdDebug(KIO_SFTP_DB) << "deleting " << (isfile ? "file: " : "directory: ") << url.url();
 
   openConnection();
   if (!mConnected) {
