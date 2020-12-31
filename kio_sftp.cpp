@@ -413,7 +413,7 @@ sftpProtocol::~sftpProtocol() {
   ssh_finalize();
 }
 
-void sftpProtocol::setHost(const QString& h, quint16 port, const QString& user, const QString& pass) {
+void sftpProtocol::setHost(const QString& h, uint16_t port, const QString& user, const QString& pass) {
   kdDebug(KIO_SFTP_DB) << "setHost(): " << user << "@" << h << ":" << port;
 
   if (mConnected) {

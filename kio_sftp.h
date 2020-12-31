@@ -26,6 +26,7 @@
 #include <kio/global.h>
 #include <kio/slavebase.h>
 #include <kdebug.h>
+#include <stdint.h>
 
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
@@ -46,24 +47,24 @@ class sftpProtocol : public KIO::SlaveBase
 public:
   sftpProtocol(const QByteArray &pool_socket, const QByteArray &app_socket);
   virtual ~sftpProtocol();
-  virtual void setHost(const QString &h, quint16 port, const QString& user, const QString& pass);
-  virtual void get(const KUrl &url);
-  virtual void listDir(const KUrl &url) ;
-  virtual void mimetype(const KUrl &url);
-  virtual void stat(const KUrl &url);
-  virtual void copy(const KUrl &src, const KUrl &dest, int permissions, KIO::JobFlags flags);
-  virtual void put(const KUrl &url, int permissions, KIO::JobFlags flags);
+  virtual void setHost(const QString &h, uint16_t port, const QString& user, const QString& pass);
+  virtual void get(const KURL &url);
+  virtual void listDir(const KURL &url) ;
+  virtual void mimetype(const KURL &url);
+  virtual void stat(const KURL &url);
+  virtual void copy(const KURL &src, const KURL &dest, int permissions, KIO::JobFlags flags);
+  virtual void put(const KURL &url, int permissions, KIO::JobFlags flags);
   virtual void closeConnection();
   virtual void slave_status();
-  virtual void del(const KUrl &url, bool isfile);
-  virtual void chmod(const KUrl &url, int permissions);
-  virtual void symlink(const QString &target, const KUrl &dest, KIO::JobFlags flags);
-  virtual void rename(const KUrl &src, const KUrl &dest, KIO::JobFlags flags);
-  virtual void mkdir(const KUrl &url, int permissions);
+  virtual void del(const KURL &url, bool isfile);
+  virtual void chmod(const KURL &url, int permissions);
+  virtual void symlink(const QString &target, const KURL &dest, KIO::JobFlags flags);
+  virtual void rename(const KURL &src, const KURL &dest, KIO::JobFlags flags);
+  virtual void mkdir(const KURL &url, int permissions);
   virtual void openConnection();
 
   // KIO::FileJob interface
-  virtual void open(const KUrl &url, QIODevice::OpenMode mode);
+  virtual void open(const KURL &url, QIODevice::OpenMode mode);
   virtual void read(KIO::filesize_t size);
   virtual void write(const QByteArray &data);
   virtual void seek(KIO::filesize_t offset);
@@ -106,7 +107,7 @@ private: // Private variables
   sftp_file mOpenFile;
 
   /** The open URL */
-  KUrl mOpenUrl;
+  KURL mOpenUrl;
 
   ssh_callbacks mCallbacks;
 
@@ -123,14 +124,14 @@ private: // Private variables
   // KIO::FileJob interface
   /** The opened handle */
   QByteArray openHandle;
-  KUrl openUrl;
+  KURL openUrl;
   KIO::filesize_t openOffset;
 
 private: // private methods
 
   int authenticateKeyboardInteractive(KIO::AuthInfo &info);
 
-  void reportError(const KUrl &url, const int err);
+  void reportError(const KURL &url, const int err);
 
   bool createUDSEntry(const QString &filename, const QByteArray &path,
       KIO::UDSEntry &entry, short int details);
