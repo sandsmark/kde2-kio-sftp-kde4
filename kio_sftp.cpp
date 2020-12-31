@@ -800,15 +800,15 @@ void sftpProtocol::openConnection() {
 
   cacheAuthentication(info);
 
-  setTimeoutSpecialCommand(KIO_SFTP_SPECIAL_TIMEOUT);
+  //setTimeoutSpecialCommand(KIO_SFTP_SPECIAL_TIMEOUT);
 
   mConnected = true;
   connected();
 
   mPassword.fill('x');
-  mPassword.clear();
+  mPassword = "";
   info.password.fill('x');
-  info.password.clear();
+  info.password = "";
 
   return;
 }
@@ -825,6 +825,7 @@ void sftpProtocol::closeConnection() {
   mConnected = false;
 }
 
+#if 0
 void sftpProtocol::special(const QByteArray &data) {
     int rc;
     kdDebug(KIO_SFTP_DB) << "special(): polling";
@@ -1007,6 +1008,7 @@ void sftpProtocol::close() {
   mOpenFile = NULL;
   finished();
 }
+#endif
 
 void sftpProtocol::get(const KURL& url) {
   kdDebug(KIO_SFTP_DB) << "get(): " << url.url()
@@ -1024,7 +1026,7 @@ void sftpProtocol::get(const KURL& url) {
   // time_t curtime = 0;
   time_t lasttime = 0;
   time_t starttime = 0;
-  KIO::filesize_t totalbytesread  = 0;
+  ssize_t totalbytesread  = 0;
   QByteArray  filedata;
 
   sftp_attributes sb = sftp_lstat(mSftp, path.data());
@@ -1104,7 +1106,7 @@ void sftpProtocol::get(const KURL& url) {
         isFirstPacket = false;
       }
       data(filedata);
-      filedata.clear();
+      filedata = "";
 
       // increment total bytes read
       totalbytesread += bytesread;
@@ -1114,7 +1116,7 @@ void sftpProtocol::get(const KURL& url) {
 
     sftp_close(file);
     data(QByteArray());
-    processedSize(static_cast<KIO::filesize_t>(sb->size));
+    processedSize((sb->size));
   }
 
   sftp_attributes_free(sb);
@@ -1155,7 +1157,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
     sftp_attributes sbPart = sftp_lstat(mSftp, dest_part_c.data());
     bPartExists = (sbPart != NULL);
 
-    if (bPartExists && !(flags & KIO::Resume) && !(flags & KIO::Overwrite) &&
+    if (bPartExists && !resume && !overwrite &&
         sbPart->size > 0 && sbPart->type == SSH_FILEXFER_TYPE_REGULAR) {
       kdDebug(KIO_SFTP_DB) << "put : calling canResume with "
         << QString::number(sbPart->size);
@@ -1163,15 +1165,17 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
       // Maybe we can use this partial file for resuming
       // Tell about the size we have, and the app will tell us
       // if it's ok to resume or not.
-      flags |= canResume(sbPart->size) ? KIO::Resume : KIO::DefaultFlags;
+      if (canResume(sbPart->size)) {
+          resume = true;
+      }
 
-      kdDebug(KIO_SFTP_DB) << "put got answer " << (flags & KIO::Resume);
+      kdDebug(KIO_SFTP_DB) << "put got answer " << resume;
 
       delete sbPart;
     }
   }
 
-  if (bOrigExists && !(flags & KIO::Overwrite) && !(flags & KIO::Resume)) {
+  if (bOrigExists && !(overwrite) && !(resume)) {
     if (sb->type == SSH_FILEXFER_TYPE_DIRECTORY) {
       error(KIO::ERR_DIR_ALREADY_EXIST, dest_orig);
     } else {
@@ -1196,24 +1200,24 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
         if (bMarkPartial) {
           kdDebug(KIO_SFTP_DB) << "Appending .part extension to " << dest_orig;
           dest = dest_part_c;
-          if (bPartExists && !(flags & KIO::Resume)) {
+          if (bPartExists && !(resume)) {
             kdDebug(KIO_SFTP_DB) << "Deleting partial file " << dest_part;
             sftp_unlink(mSftp, dest_part_c.data());
             // Catch errors when we try to open the file.
           }
         } else {
           dest = dest_orig_c;
-          if (bOrigExists && !(flags & KIO::Resume)) {
+          if (bOrigExists && !(resume)) {
             kdDebug(KIO_SFTP_DB) << "Deleting destination file " << dest_orig;
             sftp_unlink(mSftp, dest_orig_c.data());
             // Catch errors when we try to open the file.
           }
         } // bMarkPartial
 
-        if ((flags & KIO::Resume)) {
+        if ((resume)) {
           sftp_attributes fstat;
 
-          kdDebug(KIO_SFTP_DB) << "Trying to append: " << dest;
+          kdDebug(KIO_SFTP_DB) << "Trying to append: " << dest.data();
           file = sftp_open(mSftp, dest.data(), O_RDWR, 0);  // append if resuming
           if (file) {
              fstat = sftp_fstat(file);
@@ -1233,10 +1237,10 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
 
           kdDebug(KIO_SFTP_DB) << "Trying to open: " << dest << ", mode=" << QString::number(initialMode);
           file = sftp_open(mSftp, dest.data(), O_CREAT | O_TRUNC | O_WRONLY, initialMode);
-        } // flags & KIO::Resume
+        } // resume
 
         if (file == NULL) {
-          kdDebug(KIO_SFTP_DB) << "COULD NOT WRITE " << dest
+          kdDebug(KIO_SFTP_DB) << "COULD NOT WRITE " << dest.data()
                               << " permissions=" << permissions
                               << " error=" << ssh_get_error(mSession);
           if (sftp_get_error(mSftp) == SSH_FX_PERMISSION_DENIED) {
@@ -1288,7 +1292,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
   }
 
   if (sftp_close(file) < 0) {
-    kWarning(KIO_SFTP_DB) << "Error when closing file descriptor";
+    kdWarning(KIO_SFTP_DB) << "Error when closing file descriptor";
     error(KIO::ERR_COULD_NOT_WRITE, dest_orig);
     return;
   }
@@ -1298,19 +1302,19 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
     // If the original URL is a symlink and we were asked to overwrite it,
     // remove the symlink first. This ensures that we do not overwrite the
     // current source if the symlink points to it.
-    if ((flags & KIO::Overwrite)) {
+    if ((overwrite)) {
       sftp_unlink(mSftp, dest_orig_c.data());
     }
 
     if (sftp_rename(mSftp, dest.data(), dest_orig_c.data()) < 0) {
-      kWarning(KIO_SFTP_DB) << " Couldn't rename " << dest << " to " << dest_orig;
+      kdWarning(KIO_SFTP_DB) << " Couldn't rename " << dest << " to " << dest_orig;
       error(KIO::ERR_CANNOT_RENAME_PARTIAL, dest_orig);
       return;
     }
   }
 
   // set final permissions
-  if (permissions != -1 && !(flags & KIO::Resume)) {
+  if (permissions != -1 && !(resume)) {
     kdDebug(KIO_SFTP_DB) << "Trying to set final permissions of " << dest_orig << " to " << QString::number(permissions);
     if (sftp_chmod(mSftp, dest_orig_c.data(), permissions) < 0) {
       warning(i18n( "Could not change permissions for\n%1", dest_orig));
