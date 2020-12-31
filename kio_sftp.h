@@ -47,21 +47,21 @@ class sftpProtocol : public KIO::SlaveBase
 public:
   sftpProtocol(const QCString &pool_socket, const QCString &app_socket);
   virtual ~sftpProtocol();
-  virtual void setHost(const QString& h, int port, const QString& user, const QString& pass);
-  virtual void get(const KURL& url);
-  virtual void listDir(const KURL& url) ;
-  virtual void mimetype(const KURL& url);
-  virtual void stat(const KURL& url);
-  virtual void put(const KURL& url, int permissions, bool overwrite, bool resume);
-  virtual void copy(const KURL &src, const KURL &dest, int permissions, bool overwrite);
-  virtual void closeConnection();
-  virtual void slave_status();
-  virtual void del(const KURL &url, bool isfile);
-  virtual void chmod(const KURL& url, int permissions);
-  virtual void symlink(const QString& target, const KURL& dest, bool overwrite);
-  virtual void rename(const KURL& src, const KURL& dest, bool overwrite);
-  virtual void mkdir(const KURL& url, int permissions);
-  virtual void openConnection();
+  virtual void setHost(const QString& h, int port, const QString& user, const QString& pass) override;
+  virtual void get(const KURL& url) override;
+  virtual void listDir(const KURL& url)  override;
+  virtual void mimetype(const KURL& url) override;
+  virtual void stat(const KURL& url) override;
+  virtual void put(const KURL& url, int permissions, bool overwrite, bool resume) override;
+  virtual void copy(const KURL &src, const KURL &dest, int permissions, bool overwrite) override;
+  virtual void closeConnection() override;
+  virtual void slave_status() override;
+  virtual void del(const KURL &url, bool isfile) override;
+  virtual void chmod(const KURL& url, int permissions) override;
+  virtual void symlink(const QString& target, const KURL& dest, bool overwrite) override;
+  virtual void rename(const KURL& src, const KURL& dest, bool overwrite) override;
+  virtual void mkdir(const KURL& url, int permissions) override;
+  virtual void openConnection() override;
 
   // libssh authentication callback (note that this is called by the
   // global ::auth_callback() call.

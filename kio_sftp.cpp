@@ -50,6 +50,7 @@
 #include <kio/ioslave_defaults.h>
 #include <kmimetype.h>
 #include <kmimemagic.h>
+#include <signal.h>
 
 #include <libssh/libssh.h>
 #include <libssh/sftp.h>
@@ -71,8 +72,13 @@ extern "C"
       kdDebug(KIO_SFTP_DB) << "Usage: kio_sftp  protocol domain-socket1 domain-socket2" << endl;
       exit(-1);
     }
-
     sftpProtocol slave(argv[2], argv[3]);
+
+    if (getenv("DEBUG_KIO_SFTP")) {
+        // Give us a coredump in the journal
+        signal(6, SIG_DFL);
+    }
+
     slave.dispatchLoop();
 
     kdDebug(KIO_SFTP_DB) << "*** kio_sftp Done" << endl;
@@ -881,8 +887,8 @@ void sftpProtocol::statMime(const KURL &url) {
 
   switch (sb->type) {
     case SSH_FILEXFER_TYPE_DIRECTORY:
-      error(KIO::ERR_IS_DIRECTORY, url.prettyURL());
       sftp_attributes_free(sb);
+      emit mimeType("inode/directory");
       return;
     case SSH_FILEXFER_TYPE_SPECIAL:
     case SSH_FILEXFER_TYPE_UNKNOWN:
@@ -926,9 +932,6 @@ void sftpProtocol::statMime(const KURL &url) {
       fileData.setRawData(buffer.data(), bytesRead);
       KMimeMagicResult *p_mimeType = KMimeMagic::self()->findBufferFileType(fileData, mOpenUrl.fileName());
       emit mimeType(p_mimeType->mimeType());
-
-      // Go back to the beginning of the file.
-      sftp_rewind(mOpenFile);
   }
 
   sftp_close(mOpenFile);
@@ -1014,7 +1017,6 @@ void sftpProtocol::get(const KURL& url) {
   time_t lasttime = 0;
   time_t starttime = 0;
   ssize_t totalbytesread  = 0;
-  QByteArray  filedata;
 
   sftp_attributes sb = sftp_lstat(mSftp, path.data());
   if (sb == NULL) {
@@ -1053,6 +1055,7 @@ void sftpProtocol::get(const KURL& url) {
   KMimeType::Ptr mt = KMimeType::findByURL( url, sb->permissions, false /* remote URL */ );
   emit mimeType( mt->name() ); // FIXME test me
 
+  kdDebug(KIO_SFTP_DB) << "Total size: " << QString::number(sb->size) << endl;
   // Set the total size
   totalSize(sb->size);
 
@@ -1081,19 +1084,22 @@ void sftpProtocol::get(const KURL& url) {
         // All done reading
         break;
       } else if (bytesread < 0) {
+        kdDebug(KIO_SFTP_DB) << "Failed to read";
         error(KIO::ERR_COULD_NOT_READ, url.prettyURL());
         sftp_attributes_free(sb);
         return;
       }
 
+      QByteArray  filedata;
       filedata.setRawData(buf, bytesread);
       if (isFirstPacket) {
         KMimeMagicResult *p_mimeType = KMimeMagic::self()->findBufferFileType(filedata, mOpenUrl.fileName());
         mimeType(p_mimeType->mimeType());
+        kdDebug(KIO_SFTP_DB) << "mimetype=" << p_mimeType->mimeType() << endl;
         isFirstPacket = false;
       }
       data(filedata);
-      filedata = QByteArray();
+      filedata.resetRawData(buf, bytesread);
 
       // increment total bytes read
       totalbytesread += bytesread;
@@ -1101,8 +1107,9 @@ void sftpProtocol::get(const KURL& url) {
       processedSize(totalbytesread);
     }
 
+    kdDebug(KIO_SFTP_DB) << "size processed=" << totalbytesread << endl;
     sftp_close(file);
-    data(QByteArray());
+    //data(QByteArray());
     processedSize((sb->size));
   }
 

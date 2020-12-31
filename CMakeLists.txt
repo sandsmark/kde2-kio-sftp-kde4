@@ -17,6 +17,8 @@ find_package(kio REQUIRED)
 find_package(ksycoca REQUIRED)
 find_package(libssh REQUIRED)
 
+set (CMAKE_CXX_STANDARD 11)
+
 set(kio_sftp_PART_SRCS
    kio_sftp.cpp
 )
