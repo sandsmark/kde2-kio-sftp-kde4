@@ -130,12 +130,12 @@ int sftpProtocol::auth_callback(const char *prompt, char *buf, size_t len,
   info.keepPassword = false; // don't save passwords for public key,
                              // that's the task of ssh-agent.
 
-  if (!openPasswordDialog(info)) {
+  if (!openPassDlg(info)) {
     kdDebug(KIO_SFTP_DB) << "Password dialog failed";
     return -1;
   }
 
-  strncpy(buf, info.password.toUtf8().data(), len - 1);
+  strncpy(buf, info.password.utf8().data(), len - 1);
 
   info.password.fill('x');
 
@@ -156,7 +156,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
 
   kdDebug(KIO_SFTP_DB) << "Entering keyboard interactive function";
 
-  err = ssh_userauth_kbdint(mSession, mUsername.toUtf8().data(), NULL);
+  err = ssh_userauth_kbdint(mSession, mUsername.utf8().data(), NULL);
   while (err == SSH_AUTH_INFO) {
     int n = 0;
     int i = 0;
@@ -200,7 +200,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
 
         if (openPasswordDialog(infoKbdInt, i18n("Use the username input field to answer this question."))) {
           kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
-          answer = info.username.toUtf8().data();
+          answer = info.username.utf8().data();
         }
 
         if (ssh_userauth_kbdint_setanswer(mSession, i, answer) < 0) {
@@ -211,14 +211,14 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
         break;
       } else {
         if (prompt.contains("Password", Qt::CaseInsensitive)) {
-          answer = mPassword.toUtf8().data();
+          answer = mPassword.utf8().data();
         } else {
           info.readOnly = true; // set username readonly
           info.prompt = prompt;
 
           if (openPasswordDialog(info)) {
             kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
-            answer = info.password.toUtf8().data();
+            answer = info.password.utf8().data();
           }
         }
 
@@ -229,7 +229,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
         }
       }
     }
-    err = ssh_userauth_kbdint(mSession, mUsername.toUtf8().data(), NULL);
+    err = ssh_userauth_kbdint(mSession, mUsername.utf8().data(), NULL);
   }
 
   return err;
@@ -362,7 +362,7 @@ QString sftpProtocol::canonicalizePath(const QString &path) {
     return cPath;
   }
 
-  sPath = sftp_canonicalize_path(mSftp, path.toUtf8().data());
+  sPath = sftp_canonicalize_path(mSftp, path.utf8().data());
   if (sPath == NULL) {
     kdDebug(KIO_SFTP_DB) << "Could not canonicalize path: " << path;
     return cPath;
@@ -523,7 +523,7 @@ void sftpProtocol::openConnection() {
   }
 
   // Set host and port
-  rc = ssh_options_set(mSession, SSH_OPTIONS_HOST, mHost.toUtf8().data());
+  rc = ssh_options_set(mSession, SSH_OPTIONS_HOST, mHost.utf8().data());
   if (rc < 0) {
     error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set host."));
     return;
@@ -539,7 +539,7 @@ void sftpProtocol::openConnection() {
 
   // Set the username
   if (!mUsername.isEmpty()) {
-    rc = ssh_options_set(mSession, SSH_OPTIONS_USER, mUsername.toUtf8().data());
+    rc = ssh_options_set(mSession, SSH_OPTIONS_USER, mUsername.utf8().data());
     if (rc < 0) {
       error(KIO::ERR_OUT_OF_MEMORY, i18n("Could not set username."));
       return;
@@ -713,8 +713,8 @@ void sftpProtocol::openConnection() {
     // Try to authenticate with password
     kdDebug(KIO_SFTP_DB) << "Trying to authenticate with password";
     if (method & SSH_AUTH_METHOD_PASSWORD) {
-      rc = ssh_userauth_password(mSession, mUsername.toUtf8().data(),
-          mPassword.toUtf8().data());
+      rc = ssh_userauth_password(mSession, mUsername.utf8().data(),
+          mPassword.utf8().data());
       if (rc == SSH_AUTH_ERROR) {
         closeConnection();
         error(KIO::ERR_COULD_NOT_LOGIN, i18n("Authentication failed."));
@@ -820,7 +820,7 @@ void sftpProtocol::open(const KURL &url, QIODevice::OpenMode mode) {
   }
 
   const QString path = url.path();
-  const QByteArray path_c = path.toUtf8();
+  const QByteArray path_c = path.utf8();
 
   sftp_attributes sb = sftp_lstat(mSftp, path_c.data());
   if (sb == NULL) {
@@ -972,7 +972,7 @@ void sftpProtocol::get(const KURL& url) {
     return;
   }
 
-  QByteArray path = url.path().toUtf8();
+  QByteArray path = url.path().utf8();
 
   char buf[MAX_XFER_BUF_SIZE] = {0};
   sftp_file file = NULL;
@@ -1089,9 +1089,9 @@ void sftpProtocol::put(const KURL& url, int permissions, KIO::JobFlags flags) {
   }
 
   const QString dest_orig = url.path();
-  const QByteArray dest_orig_c = dest_orig.toUtf8();
+  const QByteArray dest_orig_c = dest_orig.utf8();
   const QString dest_part = dest_orig + ".part";
-  const QByteArray dest_part_c = dest_part.toUtf8();
+  const QByteArray dest_part_c = dest_part.utf8();
   uid_t owner = 0;
   gid_t group = 0;
 
@@ -1345,7 +1345,7 @@ void sftpProtocol::stat(const KURL& url) {
     return;
   }
 
-  QByteArray path = url.path().toUtf8();
+  QByteArray path = url.path().utf8();
 
   const QString sDetails = metaData(QLatin1String("details"));
   const int details = sDetails.isEmpty() ? 2 : sDetails.toInt();
@@ -1409,7 +1409,7 @@ void sftpProtocol::listDir(const KURL& url) {
     return;
   }
 
-  QByteArray path = url.path().toUtf8();
+  QByteArray path = url.path().utf8();
 
   sftp_dir dp = sftp_opendir(mSftp, path.data());
   if (dp == NULL) {
@@ -1439,7 +1439,7 @@ void sftpProtocol::listDir(const KURL& url) {
     entry.insert(KIO::UDSEntry::UDS_NAME, QFile::decodeName(dirent->name));
 
     if (dirent->type == SSH_FILEXFER_TYPE_SYMLINK) {
-      QByteArray file = QByteArray(path + '/' + QFile::decodeName(dirent->name).toUtf8()).data();
+      QByteArray file = QByteArray(path + '/' + QFile::decodeName(dirent->name).utf8()).data();
 
       entry.insert(KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG);
 
@@ -1530,7 +1530,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
     return;
   }
   const QString path = url.path();
-  const QByteArray path_c = path.toUtf8();
+  const QByteArray path_c = path.utf8();
 
   // Remove existing file or symlink, if requested.
   if (metaData(QLatin1String("overwrite")) == QLatin1String("true")) {
@@ -1575,8 +1575,8 @@ void sftpProtocol::rename(const KURL& src, const KURL& dest, KIO::JobFlags flags
     return;
   }
 
-  QByteArray qsrc = src.path().toUtf8();
-  QByteArray qdest = dest.path().toUtf8();
+  QByteArray qsrc = src.path().utf8();
+  QByteArray qdest = dest.path().utf8();
 
   sftp_attributes sb = sftp_lstat(mSftp, qdest.data());
   if (sb != NULL) {
@@ -1612,8 +1612,8 @@ void sftpProtocol::symlink(const QString &target, const KURL &dest, KIO::JobFlag
     return;
   }
 
-  QByteArray t = target.toUtf8();
-  QByteArray d = dest.path().toUtf8();
+  QByteArray t = target.utf8();
+  QByteArray d = dest.path().utf8();
 
   bool failed = false;
   if (sftp_symlink(mSftp, t.data(), d.data()) < 0) {
@@ -1650,7 +1650,7 @@ void sftpProtocol::chmod(const KURL& url, int permissions) {
     return;
   }
 
-  QByteArray path = url.path().toUtf8();
+  QByteArray path = url.path().utf8();
 
   if (sftp_chmod(mSftp, path.data(), permissions) < 0) {
     reportError(url, sftp_get_error(mSftp));
@@ -1668,7 +1668,7 @@ void sftpProtocol::del(const KURL &url, bool isfile){
     return;
   }
 
-  QByteArray path = url.path().toUtf8();
+  QByteArray path = url.path().utf8();
 
   if (isfile) {
     if (sftp_unlink(mSftp, path.data()) < 0) {
