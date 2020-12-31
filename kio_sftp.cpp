@@ -58,10 +58,9 @@
 using namespace KIO;
 extern "C"
 {
-  int KDE_EXPORT kdemain( int argc, char **argv )
+  int kdemain( int argc, char **argv )
   {
-    QCoreApplication app(argc, argv);
-    KComponentData componentData( "kio_sftp" );
+      KInstance instance( "kio_sftp" );
 
     kdDebug(KIO_SFTP_DB) << "*** Starting kio_sftp ";
 
@@ -197,8 +196,10 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
         newPrompt.append(prompt + "\n\n");
         infoKbdInt.readOnly = false;
         infoKbdInt.keepPassword = false;
+        infoKbdInt.prompt = i18n("Use the username input field to answer this question.");
 
-        if (openPasswordDialog(infoKbdInt, i18n("Use the username input field to answer this question."))) {
+
+        if (openPassDlg(infoKbdInt)) {
           kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
           answer = info.username.utf8().data();
         }
@@ -210,13 +211,13 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
         }
         break;
       } else {
-        if (prompt.contains("Password", Qt::CaseInsensitive)) {
+        if (prompt.lower() == "password") {
           answer = mPassword.utf8().data();
         } else {
           info.readOnly = true; // set username readonly
           info.prompt = prompt;
 
-          if (openPasswordDialog(info)) {
+          if (openPassDlg(info)) {
             kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
             answer = info.password.utf8().data();
           }
@@ -236,7 +237,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
 }
 
 void sftpProtocol::reportError(const KURL &url, const int err) {
-  kdDebug(KIO_SFTP_DB) << "url = " << url << " - err=" << err;
+  kdDebug(KIO_SFTP_DB) << "url = " << url.url() << " - err=" << err;
 
   switch (err) {
     case SSH_FX_OK:
@@ -672,13 +673,13 @@ void sftpProtocol::openConnection() {
     }
 
     info.caption = i18n("SFTP Login");
-    info.prompt = i18n("Please enter your username and password.");
     info.readOnly = false;
     if (firstTime) {
-      dlgResult = openPasswordDialog(info);
+      info.prompt = i18n("Please enter your username and password.");
     } else {
-      dlgResult = openPasswordDialog(info, i18n("Incorrect username or password"));
+      info.prompt =  i18n("Login failed.\nPlease confirm your username and password, and enter them again.");
     }
+    dlgResult = openPassDlg(info);
 
     // Handle user canceled or dialog failed to open...
     if (!dlgResult) {
@@ -1445,7 +1446,7 @@ void sftpProtocol::listDir(const KURL& url) {
       link = sftp_readlink(mSftp, file.data());
       if (link == NULL) {
         sftp_attributes_free(dirent);
-        error(KIO::ERR_INTERNAL, i18n("Could not read link: %1", QString::fromUtf8(file)));
+        error(KIO::ERR_INTERNAL, i18n("Could not read link: %1").arg(QString::fromUtf8(file)));
         return;
       }
       entry.insert(KIO::UDSEntry::UDS_LINK_DEST, QFile::decodeName(link));

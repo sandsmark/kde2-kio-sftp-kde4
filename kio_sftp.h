@@ -106,18 +106,12 @@ private: // Private variables
   /** Version of the sftp protocol we are using. */
   int sftpVersion;
 
-  struct Status
-  {
-    int code;
-    KIO::filesize_t size;
-    QString text;
-  };
-
-  // KIO::FileJob interface
-  /** The opened handle */
-  QByteArray openHandle;
-  KURL openUrl;
-  KIO::filesize_t openOffset;
+  //struct Status
+  //{
+  //  int code;
+  //  KIO::filesize_t size;
+  //  QString text;
+  //};
 
 private: // private methods
 
