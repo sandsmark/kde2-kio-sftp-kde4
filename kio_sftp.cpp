@@ -65,17 +65,17 @@ extern "C"
   {
       KInstance instance( "kio_sftp" );
 
-    kdDebug(KIO_SFTP_DB) << "*** Starting kio_sftp ";
+    kdDebug(KIO_SFTP_DB) << "*** Starting kio_sftp " << endl;
 
     if (argc != 4) {
-      kdDebug(KIO_SFTP_DB) << "Usage: kio_sftp  protocol domain-socket1 domain-socket2";
+      kdDebug(KIO_SFTP_DB) << "Usage: kio_sftp  protocol domain-socket1 domain-socket2" << endl;
       exit(-1);
     }
 
     sftpProtocol slave(argv[2], argv[3]);
     slave.dispatchLoop();
 
-    kdDebug(KIO_SFTP_DB) << "*** kio_sftp Done";
+    kdDebug(KIO_SFTP_DB) << "*** kio_sftp Done" << endl;
     return 0;
   }
 }
@@ -116,7 +116,7 @@ int sftpProtocol::auth_callback(const char *prompt, char *buf, size_t len,
   (void) verify;
   (void) userdata;
 
-  kdDebug(KIO_SFTP_DB) << "Entering authentication callback, prompt=" << i_prompt;
+  kdDebug(KIO_SFTP_DB) << "Entering authentication callback, prompt=" << i_prompt << endl;
 
   KIO::AuthInfo info;
 
@@ -133,7 +133,7 @@ int sftpProtocol::auth_callback(const char *prompt, char *buf, size_t len,
                              // that's the task of ssh-agent.
 
   if (!openPassDlg(info)) {
-    kdDebug(KIO_SFTP_DB) << "Password dialog failed";
+    kdDebug(KIO_SFTP_DB) << "Password dialog failed" << endl;
     return -1;
   }
 
@@ -149,14 +149,14 @@ void sftpProtocol::log_callback(ssh_session session, int priority,
   (void) session;
   (void) userdata;
 
-  kdDebug(KIO_SFTP_DB) << "[" << priority << "] " << message;
+  kdDebug(KIO_SFTP_DB) << "[" << priority << "] " << message << endl;
 }
 
 int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
   QString name, instruction, prompt;
   int err = SSH_AUTH_ERROR;
 
-  kdDebug(KIO_SFTP_DB) << "Entering keyboard interactive function";
+  kdDebug(KIO_SFTP_DB) << "Entering keyboard interactive function" << endl;
 
   err = ssh_userauth_kbdint(mSession, mUsername.utf8().data(), NULL);
   while (err == SSH_AUTH_INFO) {
@@ -168,14 +168,14 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
     n = ssh_userauth_kbdint_getnprompts(mSession);
 
     kdDebug(KIO_SFTP_DB) << "name=" << name << " instruction=" << instruction
-      << " prompts" << n;
+      << " prompts" << n << endl;
 
     for (i = 0; i < n; ++i) {
       char echo;
       const char *answer = "";
 
       prompt = QString::fromUtf8(ssh_userauth_kbdint_getprompt(mSession, i, &echo));
-      kdDebug(KIO_SFTP_DB) << "prompt=" << prompt << " echo=" << QString::number(echo);
+      kdDebug(KIO_SFTP_DB) << "prompt=" << prompt << " echo=" << QString::number(echo) << endl;
       if (echo) {
         // See RFC4256 Section 3.3 User Interface
         QString newPrompt;
@@ -203,13 +203,13 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
 
 
         if (openPassDlg(infoKbdInt)) {
-          kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
+          kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog" << endl;
           answer = info.username.utf8().data();
         }
 
         if (ssh_userauth_kbdint_setanswer(mSession, i, answer) < 0) {
           kdDebug(KIO_SFTP_DB) << "An error occurred setting the answer: "
-            << ssh_get_error(mSession);
+            << ssh_get_error(mSession) << endl;
           return SSH_AUTH_ERROR;
         }
         break;
@@ -221,14 +221,14 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
           info.prompt = prompt;
 
           if (openPassDlg(info)) {
-            kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog";
+            kdDebug(KIO_SFTP_DB) << "Got the answer from the password dialog" << endl;
             answer = info.password.utf8().data();
           }
         }
 
         if (ssh_userauth_kbdint_setanswer(mSession, i, answer) < 0) {
           kdDebug(KIO_SFTP_DB) << "An error occurred setting the answer: "
-            << ssh_get_error(mSession);
+            << ssh_get_error(mSession) << endl;
           return SSH_AUTH_ERROR;
         }
       }
@@ -240,7 +240,7 @@ int sftpProtocol::authenticateKeyboardInteractive(AuthInfo &info) {
 }
 
 void sftpProtocol::reportError(const KURL &url, const int err) {
-  kdDebug(KIO_SFTP_DB) << "url = " << url.url() << " - err=" << err;
+  kdDebug(KIO_SFTP_DB) << "url = " << url.url() << " - err=" << err << endl;
 
   switch (err) {
     case SSH_FX_OK:
@@ -400,7 +400,7 @@ notype:
 }
 
 QString sftpProtocol::canonicalizePath(const QString &path) {
-  kdDebug(KIO_SFTP_DB) << "Path to canonicalize: " << path;
+  kdDebug(KIO_SFTP_DB) << "Path to canonicalize: " << path << endl;
   QString cPath;
   char *sPath = NULL;
 
@@ -410,14 +410,14 @@ QString sftpProtocol::canonicalizePath(const QString &path) {
 
   sPath = sftp_canonicalize_path(mSftp, path.utf8().data());
   if (sPath == NULL) {
-    kdDebug(KIO_SFTP_DB) << "Could not canonicalize path: " << path;
+    kdDebug(KIO_SFTP_DB) << "Could not canonicalize path: " << path << endl;
     return cPath;
   }
 
   cPath = QFile::decodeName(sPath);
   delete sPath;
 
-  kdDebug(KIO_SFTP_DB) << "Canonicalized path: " << cPath;
+  kdDebug(KIO_SFTP_DB) << "Canonicalized path: " << cPath << endl;
 
   return cPath;
 }
@@ -426,9 +426,9 @@ sftpProtocol::sftpProtocol(const QCString &pool_socket, const QCString &app_sock
              : SlaveBase("kio_sftp", pool_socket, app_socket),
                   mConnected(false), mPort(-1), mSession(NULL), mSftp(NULL) {
 #ifndef Q_WS_WIN
-  kdDebug(KIO_SFTP_DB) << "pid = " << getpid();
+  kdDebug(KIO_SFTP_DB) << "pid = " << getpid() << endl;
 
-  kdDebug(KIO_SFTP_DB) << "debug = " << getenv("KIO_SFTP_LOG_VERBOSITY");
+  kdDebug(KIO_SFTP_DB) << "debug = " << getenv("KIO_SFTP_LOG_VERBOSITY") << endl;
 #endif
 
   mCallbacks = (ssh_callbacks) malloc(sizeof(struct ssh_callbacks_struct));
@@ -449,7 +449,7 @@ sftpProtocol::sftpProtocol(const QCString &pool_socket, const QCString &app_sock
 
 sftpProtocol::~sftpProtocol() {
 #ifndef Q_WS_WIN
-  kdDebug(KIO_SFTP_DB) << "pid = " << getpid();
+  kdDebug(KIO_SFTP_DB) << "pid = " << getpid() << endl;
 #endif
   closeConnection();
 
@@ -460,7 +460,7 @@ sftpProtocol::~sftpProtocol() {
 }
 
 void sftpProtocol::setHost(const QString& h, int port, const QString& user, const QString& pass) {
-  kdDebug(KIO_SFTP_DB) << "setHost(): " << user << "@" << h << ":" << port;
+  kdDebug(KIO_SFTP_DB) << "setHost(): " << user << "@" << h << ":" << port << endl;
 
   if (mConnected) {
     closeConnection();
@@ -479,7 +479,7 @@ void sftpProtocol::setHost(const QString& h, int port, const QString& user, cons
     }
   }
 
-  kdDebug(KIO_SFTP_DB) << "setHost(): mPort=" << mPort;
+  kdDebug(KIO_SFTP_DB) << "setHost(): mPort=" << mPort << endl;
 
   mUsername = user;
   mPassword = pass;
@@ -491,12 +491,12 @@ void sftpProtocol::openConnection() {
     return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "username=" << mUsername << ", host=" << mHost << ", port=" << mPort;
+  kdDebug(KIO_SFTP_DB) << "username=" << mUsername << ", host=" << mHost << ", port=" << mPort << endl;
 
   infoMessage(i18n("Opening SFTP connection to host %1:%2").arg(mHost).arg(mPort));
 
   if (mHost.isEmpty()) {
-    kdDebug(KIO_SFTP_DB) << "openConnection(): Need hostname...";
+    kdDebug(KIO_SFTP_DB) << "openConnection(): Need hostname..." << endl;
     error(KIO::ERR_UNKNOWN_HOST, i18n("No hostname specified."));
     return;
   }
@@ -518,7 +518,7 @@ void sftpProtocol::openConnection() {
   // Check for cached authentication info if no password is specified...
   if (mPassword.isEmpty()) {
     kdDebug(KIO_SFTP_DB) << "checking cache: info.username = " << info.username
-      << ", info.url = " << info.url.prettyURL();
+      << ", info.url = " << info.url.prettyURL() << endl;
 
     if (checkCachedAuthentication(info)) {
       mUsername = info.username;
@@ -541,7 +541,7 @@ void sftpProtocol::openConnection() {
     return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "Creating the SSH session and setting options";
+  kdDebug(KIO_SFTP_DB) << "Creating the SSH session and setting options" << endl;
 
   // Set timeout
   rc = ssh_options_set(mSession, SSH_OPTIONS_TIMEOUT, &timeout_sec);
@@ -610,7 +610,7 @@ void sftpProtocol::openConnection() {
 
   ssh_set_callbacks(mSession, mCallbacks);
 
-  kdDebug(KIO_SFTP_DB) << "Trying to connect to the SSH server";
+  kdDebug(KIO_SFTP_DB) << "Trying to connect to the SSH server" << endl;
 
   /* try to connect */
   rc = ssh_connect(mSession);
@@ -620,7 +620,7 @@ void sftpProtocol::openConnection() {
     return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "Getting the SSH server hash";
+  kdDebug(KIO_SFTP_DB) << "Getting the SSH server hash" << endl;
 
   /* get the hash */
   ssh_key serverKey;
@@ -637,7 +637,7 @@ void sftpProtocol::openConnection() {
     return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "Checking if the SSH server is known";
+  kdDebug(KIO_SFTP_DB) << "Checking if the SSH server is known" << endl;
 
   /* check the server public key hash */
   state = ssh_session_is_known_server(mSession);
@@ -683,7 +683,7 @@ void sftpProtocol::openConnection() {
       }
 
       /* write the known_hosts file */
-      kdDebug(KIO_SFTP_DB) << "Adding server to known_hosts file.";
+      kdDebug(KIO_SFTP_DB) << "Adding server to known_hosts file." << endl;
       if (ssh_session_update_known_hosts(mSession) != SSH_OK) {
         error(KIO::ERR_USER_CANCELED, QString::fromUtf8(ssh_get_error(mSession)));
         closeConnection();
@@ -696,7 +696,7 @@ void sftpProtocol::openConnection() {
       return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "Trying to authenticate with the server";
+  kdDebug(KIO_SFTP_DB) << "Trying to authenticate with the server" << endl;
 
   // Try to authenticate
   rc = ssh_userauth_none(mSession, NULL);
@@ -712,7 +712,7 @@ void sftpProtocol::openConnection() {
   while (rc != SSH_AUTH_SUCCESS) {
 
     // Try to authenticate with public key first
-    kdDebug(KIO_SFTP_DB) << "Trying to authenticate public key";
+    kdDebug(KIO_SFTP_DB) << "Trying to authenticate public key" << endl;
     if (method & SSH_AUTH_METHOD_PUBLICKEY) {
       rc = ssh_userauth_autopubkey(mSession, NULL);
       if (rc == SSH_AUTH_ERROR) {
@@ -735,7 +735,7 @@ void sftpProtocol::openConnection() {
 
     // Handle user canceled or dialog failed to open...
     if (!dlgResult) {
-      kdDebug(KIO_SFTP_DB) << "User canceled, dlgResult = " << dlgResult;
+      kdDebug(KIO_SFTP_DB) << "User canceled, dlgResult = " << dlgResult << endl;
       closeConnection();
       error(KIO::ERR_USER_CANCELED, QString());
       return;
@@ -745,13 +745,13 @@ void sftpProtocol::openConnection() {
 
     if (mUsername != info.username) {
       kdDebug(KIO_SFTP_DB) << "Username changed from " << mUsername
-                                    << " to " << info.username;
+                                    << " to " << info.username << endl;
     }
     mUsername = info.username;
     mPassword = info.password;
 
     // Try to authenticate with keyboard interactive
-    kdDebug(KIO_SFTP_DB) << "Trying to authenticate with keyboard interactive";
+    kdDebug(KIO_SFTP_DB) << "Trying to authenticate with keyboard interactive" << endl;
     if (method & SSH_AUTH_METHOD_INTERACTIVE) {
       rc = authenticateKeyboardInteractive(info);
       if (rc == SSH_AUTH_ERROR) {
@@ -764,7 +764,7 @@ void sftpProtocol::openConnection() {
     }
 
     // Try to authenticate with password
-    kdDebug(KIO_SFTP_DB) << "Trying to authenticate with password";
+    kdDebug(KIO_SFTP_DB) << "Trying to authenticate with password" << endl;
     if (method & SSH_AUTH_METHOD_PASSWORD) {
       rc = ssh_userauth_password(mSession, mUsername.utf8().data(),
           mPassword.utf8().data());
@@ -779,7 +779,7 @@ void sftpProtocol::openConnection() {
   }
 
   // start sftp session
-  kdDebug(KIO_SFTP_DB) << "Trying to request the sftp session";
+  kdDebug(KIO_SFTP_DB) << "Trying to request the sftp session" << endl;
   mSftp = sftp_new(mSession);
   if (mSftp == NULL) {
     closeConnection();
@@ -788,7 +788,7 @@ void sftpProtocol::openConnection() {
     return;
   }
 
-  kdDebug(KIO_SFTP_DB) << "Trying to initialize the sftp session";
+  kdDebug(KIO_SFTP_DB) << "Trying to initialize the sftp session" << endl;
   if (sftp_init(mSftp) < 0) {
     closeConnection();
     error(KIO::ERR_COULD_NOT_LOGIN, i18n("Could not initialize the SFTP session."));
@@ -805,7 +805,7 @@ void sftpProtocol::openConnection() {
   info.password = mPassword;
 
   kdDebug(KIO_SFTP_DB) << "Caching info.username = " << info.username
-    << ", info.url = " << info.url.prettyURL();
+    << ", info.url = " << info.url.prettyURL() << endl;
 
   cacheAuthentication(info);
 
@@ -823,7 +823,7 @@ void sftpProtocol::openConnection() {
 }
 
 void sftpProtocol::closeConnection() {
-  kdDebug(KIO_SFTP_DB) << "closeConnection()";
+  kdDebug(KIO_SFTP_DB) << "closeConnection()" << endl;
 
   sftp_free(mSftp);
   mSftp = NULL;
@@ -866,7 +866,7 @@ void sftpProtocol::special(const QByteArray &data) {
 #endif
 
 void sftpProtocol::statMime(const KURL &url) {
-  kdDebug(KIO_SFTP_DB) << "stat: " << url.url();
+  kdDebug(KIO_SFTP_DB) << "stat: " << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1002,7 +1002,7 @@ void sftpProtocol::closeFile() {
 }
 
 void sftpProtocol::get(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << "get(): " << url.url();
+  kdDebug(KIO_SFTP_DB) << "get(): " << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1069,7 +1069,7 @@ void sftpProtocol::get(const KURL& url) {
       if (sftp_seek64(file, offset) == 0) {
         canResume();
         totalbytesread = offset;
-        kdDebug(KIO_SFTP_DB) << "Resume offset: " << QString::number(offset);
+        kdDebug(KIO_SFTP_DB) << "Resume offset: " << QString::number(offset) << endl;
       }
     }
   }
@@ -1080,7 +1080,7 @@ void sftpProtocol::get(const KURL& url) {
 
     for (;;) {
       bytesread = sftp_read(file, buf, MAX_XFER_BUF_SIZE);
-      kdDebug(KIO_SFTP_DB) << "bytesread=" << QString::number(bytesread);
+      kdDebug(KIO_SFTP_DB) << "bytesread=" << QString::number(bytesread) << endl;
       if (bytesread == 0) {
         // All done reading
         break;
@@ -1118,7 +1118,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
   kdDebug(KIO_SFTP_DB) << "put(): " << url.url()
                       << " , permissions = " << QString::number(permissions)
                       << ", overwrite = " << overwrite
-                      << ", resume = " << resume;
+                      << ", resume = " << resume << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1151,7 +1151,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
     if (bPartExists && !resume && !overwrite &&
         sbPart->size > 0 && sbPart->type == SSH_FILEXFER_TYPE_REGULAR) {
       kdDebug(KIO_SFTP_DB) << "put : calling canResume with "
-        << QString::number(sbPart->size);
+        << QString::number(sbPart->size) << endl;
 
       // Maybe we can use this partial file for resuming
       // Tell about the size we have, and the app will tell us
@@ -1160,7 +1160,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
           resume = true;
       }
 
-      kdDebug(KIO_SFTP_DB) << "put got answer " << resume;
+      kdDebug(KIO_SFTP_DB) << "put got answer " << resume << endl;
 
       delete sbPart;
     }
@@ -1189,17 +1189,17 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
     if (result >= 0) {
       if (dest.isEmpty()) {
         if (bMarkPartial) {
-          kdDebug(KIO_SFTP_DB) << "Appending .part extension to " << dest_orig;
+          kdDebug(KIO_SFTP_DB) << "Appending .part extension to " << dest_orig << endl;
           dest = dest_part_c;
           if (bPartExists && !(resume)) {
-            kdDebug(KIO_SFTP_DB) << "Deleting partial file " << dest_part;
+            kdDebug(KIO_SFTP_DB) << "Deleting partial file " << dest_part << endl;
             sftp_unlink(mSftp, dest_part_c.data());
             // Catch errors when we try to open the file.
           }
         } else {
           dest = dest_orig_c;
           if (bOrigExists && !(resume)) {
-            kdDebug(KIO_SFTP_DB) << "Deleting destination file " << dest_orig;
+            kdDebug(KIO_SFTP_DB) << "Deleting destination file " << dest_orig << endl;
             sftp_unlink(mSftp, dest_orig_c.data());
             // Catch errors when we try to open the file.
           }
@@ -1208,7 +1208,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
         if ((resume)) {
           sftp_attributes fstat;
 
-          kdDebug(KIO_SFTP_DB) << "Trying to append: " << dest.data();
+          kdDebug(KIO_SFTP_DB) << "Trying to append: " << dest.data() << endl;
           file = sftp_open(mSftp, dest.data(), O_RDWR, 0);  // append if resuming
           if (file) {
              fstat = sftp_fstat(file);
@@ -1226,14 +1226,14 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
             initialMode = 0644;
           }
 
-          kdDebug(KIO_SFTP_DB) << "Trying to open: " << dest.data() << ", mode=" << QString::number(initialMode);
+          kdDebug(KIO_SFTP_DB) << "Trying to open: " << dest.data() << ", mode=" << QString::number(initialMode) << endl;
           file = sftp_open(mSftp, dest.data(), O_CREAT | O_TRUNC | O_WRONLY, initialMode);
         } // resume
 
         if (file == NULL) {
           kdDebug(KIO_SFTP_DB) << "COULD NOT WRITE " << dest.data()
                               << " permissions=" << permissions
-                              << " error=" << ssh_get_error(mSession);
+                              << " error=" << ssh_get_error(mSession) << endl;
           if (sftp_get_error(mSftp) == SSH_FX_PERMISSION_DENIED) {
             error(KIO::ERR_WRITE_ACCESS_DENIED, QString::fromUtf8(dest));
           } else {
@@ -1256,7 +1256,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
 
   // An error occurred deal with it.
   if (result < 0) {
-    kdDebug(KIO_SFTP_DB) << "Error during 'put'. Aborting.";
+    kdDebug(KIO_SFTP_DB) << "Error during 'put'. Aborting." << endl;
 
     if (file != NULL) {
       sftp_close(file);
@@ -1283,7 +1283,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
   }
 
   if (sftp_close(file) < 0) {
-    kdWarning(KIO_SFTP_DB) << "Error when closing file descriptor";
+    kdWarning(KIO_SFTP_DB) << "Error when closing file descriptor" << endl;
     error(KIO::ERR_COULD_NOT_WRITE, dest_orig);
     return;
   }
@@ -1298,7 +1298,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
     }
 
     if (sftp_rename(mSftp, dest.data(), dest_orig_c.data()) < 0) {
-      kdWarning(KIO_SFTP_DB) << " Couldn't rename " << dest.data() << " to " << dest_orig;
+      kdWarning(KIO_SFTP_DB) << " Couldn't rename " << dest.data() << " to " << dest_orig << endl;
       error(KIO::ERR_CANNOT_RENAME_PARTIAL, dest_orig);
       return;
     }
@@ -1306,7 +1306,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
 
   // set final permissions
   if (permissions != -1 && !(resume)) {
-    kdDebug(KIO_SFTP_DB) << "Trying to set final permissions of " << dest_orig << " to " << QString::number(permissions);
+    kdDebug(KIO_SFTP_DB) << "Trying to set final permissions of " << dest_orig << " to " << QString::number(permissions) << endl;
     if (sftp_chmod(mSftp, dest_orig_c.data(), permissions) < 0) {
       warning(i18n( "Could not change permissions for\n%1").arg(dest_orig));
     }
@@ -1314,7 +1314,7 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
 
   // set original owner and group
   if (bOrigExists) {
-      kdDebug(KIO_SFTP_DB) << "Trying to restore original owner and group of " << dest_orig;
+      kdDebug(KIO_SFTP_DB) << "Trying to restore original owner and group of " << dest_orig << endl;
       if (sftp_chown(mSftp, dest_orig_c.data(), owner, group) < 0) {
           // warning(i18n( "Could not change owner and group for\n%1", dest_orig));
       }
@@ -1347,13 +1347,13 @@ void sftpProtocol::put(const KURL& url, int permissions, bool overwrite, bool re
 void sftpProtocol::copy(const KURL &src, const KURL &dest, int permissions, bool overwrite)
 {
   kdDebug(KIO_SFTP_DB) << src.url() << " -> " << dest.url() << " , permissions = " << QString::number(permissions)
-                                      << ", overwrite = " << overwrite;
+                                      << ", overwrite = " << overwrite << endl;
 
   error(KIO::ERR_UNSUPPORTED_ACTION, QString());
 }
 
 void sftpProtocol::stat(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << url.url();
+  kdDebug(KIO_SFTP_DB) << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1378,7 +1378,7 @@ void sftpProtocol::stat(const KURL& url) {
     redir.setPath(cPath);
     redirection(redir);
 
-    kdDebug(KIO_SFTP_DB) << "redirecting to " << redir.url();
+    kdDebug(KIO_SFTP_DB) << "redirecting to " << redir.url() << endl;
 
     finished();
     return;
@@ -1402,7 +1402,7 @@ void sftpProtocol::stat(const KURL& url) {
 }
 
 void sftpProtocol::mimetype(const KURL& url){
-  kdDebug(KIO_SFTP_DB) << url.url();
+  kdDebug(KIO_SFTP_DB) << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1417,7 +1417,7 @@ void sftpProtocol::mimetype(const KURL& url){
 }
 
 void sftpProtocol::listDir(const KURL& url) {
-  kdDebug(KIO_SFTP_DB) << "list directory: " << url.url();
+  kdDebug(KIO_SFTP_DB) << "list directory: " << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1442,7 +1442,7 @@ void sftpProtocol::listDir(const KURL& url) {
     redir.setPath(cPath);
     redirection(redir);
 
-    kdDebug(KIO_SFTP_DB) << "redirecting to " << redir.url();
+    kdDebug(KIO_SFTP_DB) << "redirecting to " << redir.url() << endl;
 
     finished();
     return;
@@ -1462,7 +1462,7 @@ void sftpProtocol::listDir(const KURL& url) {
   QList<QByteArray> entryNames;
   UDSEntry entry;
 
-  kdDebug(KIO_SFTP_DB) << "readdir: " << path.data() << ", details: " << QString::number(details);
+  kdDebug(KIO_SFTP_DB) << "readdir: " << path.data() << ", details: " << QString::number(details) << endl;
 
   UDSAtom atom;
 
@@ -1593,7 +1593,7 @@ notype:
 }
 
 void sftpProtocol::mkdir(const KURL &url, int permissions) {
-  kdDebug(KIO_SFTP_DB) << "create directory: " << url.url();
+  kdDebug(KIO_SFTP_DB) << "create directory: " << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1609,11 +1609,11 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
 
   // Remove existing file or symlink, if requested.
   if (metaData(QString("overwrite")) == QString("true")) {
-    kdDebug(KIO_SFTP_DB) << "overwrite set, remove existing file or symlink: " << url.url();
+    kdDebug(KIO_SFTP_DB) << "overwrite set, remove existing file or symlink: " << url.url() << endl;
     sftp_unlink(mSftp, path_c.data());
   }
 
-  kdDebug(KIO_SFTP_DB) << "Trying to create directory: " << path;
+  kdDebug(KIO_SFTP_DB) << "Trying to create directory: " << path << endl;
   sftp_attributes sb = sftp_lstat(mSftp, path_c.data());
   if (sb == NULL) {
     if (sftp_mkdir(mSftp, path_c.data(), 0777) < 0) {
@@ -1621,7 +1621,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
       sftp_attributes_free(sb);
       return;
     } else {
-      kdDebug(KIO_SFTP_DB) << "Successfully created directory: " << url.url();
+      kdDebug(KIO_SFTP_DB) << "Successfully created directory: " << url.url() << endl;
       if (permissions != -1) {
         chmod(url, permissions);
       } else {
@@ -1643,7 +1643,7 @@ void sftpProtocol::mkdir(const KURL &url, int permissions) {
 }
 
 void sftpProtocol::rename(const KURL& src, const KURL& dest, bool overwrite) {
-  kdDebug(KIO_SFTP_DB) << "rename " << src.url() << " to " << dest.url();
+  kdDebug(KIO_SFTP_DB) << "rename " << src.url() << " to " << dest.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1679,7 +1679,7 @@ void sftpProtocol::rename(const KURL& src, const KURL& dest, bool overwrite) {
 
 void sftpProtocol::symlink(const QString& target, const KURL& dest, bool overwrite) {
   kdDebug(KIO_SFTP_DB) << "link " << target << "->" << dest.url()
-                      << ", overwrite = " << overwrite;
+                      << ", overwrite = " << overwrite << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1717,7 +1717,7 @@ void sftpProtocol::symlink(const QString& target, const KURL& dest, bool overwri
 }
 
 void sftpProtocol::chmod(const KURL& url, int permissions) {
-  kdDebug(KIO_SFTP_DB) << "change permission of " << url.url() << " to " << QString::number(permissions);
+  kdDebug(KIO_SFTP_DB) << "change permission of " << url.url() << " to " << QString::number(permissions) << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1735,7 +1735,7 @@ void sftpProtocol::chmod(const KURL& url, int permissions) {
 }
 
 void sftpProtocol::del(const KURL &url, bool isfile){
-  kdDebug(KIO_SFTP_DB) << "deleting " << (isfile ? "file: " : "directory: ") << url.url();
+  kdDebug(KIO_SFTP_DB) << "deleting " << (isfile ? "file: " : "directory: ") << url.url() << endl;
 
   openConnection();
   if (!mConnected) {
@@ -1760,7 +1760,7 @@ void sftpProtocol::del(const KURL &url, bool isfile){
 }
 
 void sftpProtocol::slave_status() {
-  kdDebug(KIO_SFTP_DB) << "connected to " << mHost << "?: " << mConnected;
+  kdDebug(KIO_SFTP_DB) << "connected to " << mHost << "?: " << mConnected << endl;
   slaveStatus((mConnected ? mHost : QString()), mConnected);
 }
 
