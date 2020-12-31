@@ -74,6 +74,8 @@ public:
     void *userdata);
 
 private: // Private variables
+  void statMime(const KURL &url);
+  void closeFile();
   /** True if ioslave is connected to sftp server. */
   bool mConnected;
 

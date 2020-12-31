@@ -15,6 +15,7 @@ find_package(kssl REQUIRED)
 find_package(kdesu REQUIRED)
 find_package(kio REQUIRED)
 find_package(ksycoca REQUIRED)
+find_package(libssh REQUIRED)
 
 set(kio_sftp_PART_SRCS
    kio_sftp.cpp
@@ -22,7 +23,7 @@ set(kio_sftp_PART_SRCS
 
 include_directories(${LIBSSH_INCLUDE_DIRS})
 
-kde2_module(kio_sftp SOURCES ${kio_sftp_PART_SRCS} LIBS kde2::kio kde2::ksycoca)
+kde2_module(kio_sftp SOURCES ${kio_sftp_PART_SRCS} LIBS kde2::kio kde2::ksycoca ssh)
 
 install(FILES sftp.protocol DESTINATION "${KDE2_SERVICESDIR}")
 
